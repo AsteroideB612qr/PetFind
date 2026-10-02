@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetFind</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-5">
+  
+  <div id="content" class="text-center">
+    <p class="text-2xl font-bold animate-pulse mb-4">PetFind 🐾</p>
+    <p id="status" class="text-lg text-gray-300">Preparando WhatsApp...</p>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0",
+      authDomain: "petfind-50fb3.firebaseapp.com",
+      projectId: "petfind-50fb3",
+      storageBucket: "petfind-50fb3.firebasestorage.app",
+      messagingSenderId: "1077014067959",
+      appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagId = urlParams.get('id');
+
+    async function init() {
+      if (!tagId) return window.location.href = "https://wa.me";
+
+      try {
+        const docSnap = await db.collection("tags").doc(tagId).get();
+        if (!docSnap.exists) {
+          document.getElementById('status').innerText = "Medalla no encontrada.";
+          return;
+        }
+
+        const tag = docSnap.data();
+        document.getElementById('status').innerText = "Obteniendo ubicación...";
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const mapsLink = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
+              const fullMessage = `${tag.message} Mi ubicación actual es: ${mapsLink}`;
+              // Redirige a WhatsApp
+              window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(fullMessage)}`;
+            },
+            (error) => {
+              // Si el usuario rechaza la ubicación, envía solo el mensaje
+              window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(tag.message)}`;
+            },
+            { timeout: 5000 } // Espera máximo 5 segundos por la ubicación
+          );
+        } else {
+          window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(tag.message)}`;
+        }
+      } catch (e) {
+        document.getElementById('status').innerText = "Error al redirigir.";
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>
