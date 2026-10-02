@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PetFind - Mascota Encontrada</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center min-h-screen p-5">
+  
+  <!-- Tarjeta Blanca -->
+  <div id="content" class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm w-full">
+    <p class="text-gray-500 animate-pulse">Cargando información de la mascota...</p>
+  </div>
+
+  <script>
+    // === CONFIGURACIÓN FIREBASE ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0",
+      authDomain: "petfind-50fb3.firebaseapp.com",
+      projectId: "petfind-50fb3",
+      storageBucket: "petfind-50fb3.firebasestorage.app",
+      messagingSenderId: "1077014067959",
+      appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
+    };
+    // ==============================
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // Leer el ID que viene en el link del QR
+    const urlParams = new URLSearchParams(window.location.search);
+    const tagId = urlParams.get('id');
+
+    async function init() {
+      if (!tagId) {
+        document.getElementById('content').innerHTML = "<p class='text-red-500 font-bold'>QR inválido.</p>";
+        return;
+      }
+
+      try {
+        const docRef = db.collection("tags").doc(tagId);
+        const docSnap = await docRef.get();
+
+        if (docSnap.exists()) {
+          const tag = docSnap.data();
+          
+          // Guardamos los datos en variables globales para usarlas en los botones
+          window.petPhone = tag.phone;
+          window.petMessage = tag.message;
+
+          const html = `
+            <div class="mb-6">
+              <div class="w-24 h-24 bg-blue-100 rounded-full mx-auto flex items-center justify-center text-5xl mb-4">🐾</div>
+              <h1 class="text-2xl font-bold text-gray-800">¡Mascota Encontrada!</h1>
+              <p class="text-gray-500 mt-2">Gracias por escanear. Por favor, avisa al dueño enviando tu ubicación actual.</p>
+            </div>
+            
+            <button onclick="sendLocation()" class="w-full bg-green-500 text-white px-6 py-4 rounded-xl hover:bg-green-600 font-bold text-lg shadow-md mb-3 flex items-center justify-center gap-2">
+              <span>📍</span> Enviar mi Ubicación
+            </button>
+            
+            <button onclick="sendPlainMessage()" class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl hover:bg-blue-600 font-medium text-md shadow-md">
+              💬 Solo enviar un Mensaje
+            </button>
+          `;
+          document.getElementById('content').innerHTML = html;
+
+        } else {
+          document.getElementById('content').innerHTML = "<p class='text-red-500 font-bold'>Esta medalla no está registrada en PetFind.</p>";
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        document.getElementById('content').innerHTML = "<p class='text-red-500'>Error al cargar los datos.</p>";
+      }
+    }
+
+    // Función para pedir la ubicación del celular y abrir WhatsApp
+    function sendLocation() {
+      if (!navigator.geolocation) {
+        alert("Tu navegador no permite obtener la ubicación. Por favor usa el botón de solo enviar mensaje.");
+        return;
+      }
+
+      document.getElementById('content').innerHTML = "<p class='text-blue-500 animate-pulse text-lg'>Obteniendo tu ubicación...<br><small>Por favor acepta el permiso de ubicación.</small></p>";
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
+          
+          // Combinar el mensaje del dueño con el link de maps
+          const fullMessage = `${window.petMessage} Mi ubicación actual es: ${mapsLink}`;
+          
+          // Abrir WhatsApp
+          window.location.href = `https://wa.me/${window.petPhone}?text=${encodeURIComponent(fullMessage)}`;
+        },
+        (error) => {
+          alert("No pudimos obtener tu ubicación. Te redirigiremos a WhatsApp para que escribas manualmente.");
+          sendPlainMessage();
+        }
+      );
+    }
+
+    // Función para solo abrir WhatsApp con el mensaje por defecto
+    function sendPlainMessage() {
+      window.location.href = `https://wa.me/${window.petPhone}?text=${encodeURIComponent(window.petMessage)}`;
+    }
+
+    // Iniciar la app
+    init();
+  </script>
+</body>
+</html>
