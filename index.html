@@ -17,7 +17,7 @@
       </svg>
       <h1 class="text-4xl font-extrabold text-blue-800 tracking-tight">PetFind</h1>
     </div>
-    <p class="text-center text-gray-600 mb-10 text-lg">Panel de Super Admin - Generación de Medallas QR</p>
+    <p class="text-center text-gray-600 mb-10 text-lg">Panel de Super Admin - Generación de Medallas</p>
     
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
@@ -25,6 +25,14 @@
       </h2>
       
       <div class="space-y-5">
+        <div>
+          <label class="block text-gray-700 mb-2 font-medium">Tipo de Medalla (Plan)</label>
+          <select id="planType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            <option value="basic">Básico (Directo a WhatsApp)</option>
+            <option value="premium">Premium (Perfil Web Completo)</option>
+          </select>
+        </div>
+
         <div>
           <label class="block text-gray-700 mb-2 font-medium">Nombre de la mascota (Uso interno)</label>
           <input type="text" id="petName" placeholder="Ej: Max (Perro de Juan)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -55,7 +63,6 @@
   </div>
 
   <script>
-    // === CONFIGURACIÓN FIREBASE ===
     const firebaseConfig = {
       apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0",
       authDomain: "petfind-50fb3.firebaseapp.com",
@@ -64,20 +71,15 @@
       messagingSenderId: "1077014067959",
       appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
     };
-    // ==============================
 
-    // Inicializar Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // URL de tu página pública
-    const BASE_URL = "https://petfind-omega.vercel.app/scan.html?id=";
-
-    // Función para crear una medalla
     function createTag() {
       const petName = document.getElementById('petName').value;
       const phone = document.getElementById('phone').value;
       const message = document.getElementById('message').value;
+      const planType = document.getElementById('planType').value;
 
       if (!phone || !message) {
         alert("Por favor ingresa un número de WhatsApp y un mensaje");
@@ -88,27 +90,23 @@
         petName: petName,
         phone: phone,
         message: message,
+        plan: planType, // Guardamos si es basic o premium
         claimed: false,
         createdAt: new Date()
       }).then((docRef) => {
         alert("¡Medalla creada con éxito! Generando QR...");
         
-        // Generar y abrir QR en nueva pestaña
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${BASE_URL}${docRef.id}`;
+        // Si es básico, el QR apunta a go.html (redirección). Si es premium, a scan.html
+        const page = planType === 'basic' ? 'go.html' : 'scan.html';
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`;
         window.open(qrUrl, '_blank');
         
-        // Limpiar formulario
         document.getElementById('petName').value = "";
         document.getElementById('phone').value = "";
-        
-        // Recargar lista
         loadTags();
-      }).catch((error) => {
-        alert("Error al crear: " + error);
-      });
+      }).catch((error) => alert("Error: " + error));
     }
 
-    // Función para cargar las medallas existentes
     function loadTags() {
       const list = document.getElementById('tagsList');
       list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando medallas...</p>";
@@ -116,18 +114,23 @@
       db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
         list.innerHTML = "";
         if (querySnapshot.empty) {
-          list.innerHTML = "<p class='text-gray-400 text-center py-4'>No hay medallas creadas todavía. Crea la primera arriba 👆</p>";
+          list.innerHTML = "<p class='text-gray-400 text-center py-4'>No hay medallas creadas todavía.</p>";
           return;
         }
         
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
-          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${BASE_URL}${doc.id}`;
+          const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://petfind-omega.vercel.app/${page}?id=${doc.id}`;
+          const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
           
           const html = `
             <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div class="flex-1">
-                <p class="font-bold text-gray-800 text-lg">${tag.petName || 'Sin nombre'}</p>
+                <div class="flex items-center gap-2 mb-1">
+                  <p class="font-bold text-gray-800 text-lg">${tag.petName || 'Sin nombre'}</p>
+                  <span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span>
+                </div>
                 <p class="text-sm text-gray-500">📞 WhatsApp: ${tag.phone}</p>
                 <p class="text-xs text-gray-400 mt-1 break-all">ID: ${doc.id}</p>
               </div>
@@ -138,13 +141,9 @@
           `;
           list.innerHTML += html;
         });
-      }).catch((error) => {
-        console.error("Error al cargar: ", error);
-        list.innerHTML = "<p class='text-red-400 text-center py-4'>Error al cargar. Revisa tu conexión a Firebase.</p>";
       });
     }
 
-    // Cargar al iniciar
     loadTags();
   </script>
 </body>
