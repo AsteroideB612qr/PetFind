@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - Medallas QR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8 text-center">Panel de Super Admin</h1>
+    
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-200">
+      <h2 class="text-xl font-semibold mb-4">Generar Nueva Medalla y QR</h2>
+      
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Nombre de la mascota (Interno)</label>
+        <input type="text" id="petName" placeholder="Ej: Max (Perro de Juan)" class="w-full p-2 border rounded">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Número de WhatsApp del dueño (con código de país, sin +)</label>
+        <input type="text" id="phone" placeholder="Ej: 521234567890" class="w-full p-2 border rounded">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Mensaje predeterminado</label>
+        <textarea id="message" class="w-full p-2 border rounded h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación:</textarea>
+      </div>
+
+      <button onclick="createTag()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-semibold w-full">
+        Generar Medalla y QR
+      </button>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+      <h2 class="text-xl font-semibold mb-4">Medallas Creadas</h2>
+      <div id="tagsList" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    // CONFIGURACIÓN DE FIREBASE (Pega tus datos aquí)
+    const firebaseConfig = {
+      apiKey: "AQUI_TU_API_KEY",
+      authDomain: "AQUI_TU_AUTH_DOMAIN",
+      projectId: "AQUI_TU_PROJECT_ID",
+      storageBucket: "AQUI_TU_STORAGE_BUCKET",
+      messagingSenderId: "AQUI_TU_MESSAGING_SENDER_ID",
+      appId: "AQUI_TU_APP_ID"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // URL base donde se alojará el proyecto en Vercel
+    // Por ahora usaremos un placeholder, lo cambiaremos cuando Vercel nos dé la URL
+    const BASE_URL = "https://medallas-qr.vercel.app/scan.html?id=";
+
+    // Función para crear una medalla
+    function createTag() {
+      const petName = document.getElementById('petName').value;
+      const phone = document.getElementById('phone').value;
+      const message = document.getElementById('message').value;
+
+      if (!phone || !message) {
+        alert("Por favor ingresa un número de WhatsApp y un mensaje");
+        return;
+      }
+
+      db.collection("tags").add({
+        petName: petName,
+        phone: phone,
+        message: message,
+        claimed: false,
+        createdAt: new Date()
+      }).then((docRef) => {
+        alert("¡Medalla creada! Generando QR...");
+        
+        // Generar y abrir QR
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${BASE_URL}${docRef.id}`;
+        window.open(qrUrl, '_blank');
+        
+        // Limpiar formulario
+        document.getElementById('petName').value = "";
+        document.getElementById('phone').value = "";
+        
+        // Recargar lista
+        loadTags();
+      }).catch((error) => {
+        alert("Error: " + error);
+      });
+    }
+
+    // Función para cargar las medallas
+    function loadTags() {
+      const list = document.getElementById('tagsList');
+      list.innerHTML = "<p class='text-gray-500'>Cargando...</p>";
+      
+      db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        list.innerHTML = "";
+        if (querySnapshot.empty) {
+          list.innerHTML = "<p class='text-gray-500'>No hay medallas creadas todavía.</p>";
+          return;
+        }
+        
+        querySnapshot.forEach((doc) => {
+          const tag = doc.data();
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${BASE_URL}${doc.id}`;
+          
+          const html = `
+            <div class="border-b pb-3 flex justify-between items-center">
+              <div>
+                <p class="font-bold">${tag.petName || 'Sin nombre'}</p>
+                <p class="text-sm text-gray-500">WhatsApp: ${tag.phone}</p>
+                <p class="text-xs text-gray-400">ID: ${doc.id}</p>
+              </div>
+              <button onclick="window.open('${qrUrl}', '_blank')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">
+                Ver QR
+              </button>
+            </div>
+          `;
+          list.innerHTML += html;
+        });
+      });
+    }
+
+    // Cargar al iniciar
+    loadTags();
+  </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel Admin - Medallas QR</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-gray-100 p-8">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8 text-center">Panel de Super Admin</h1>
+    
+    <div class="bg-white p-6 rounded-lg shadow-md mb-8 border border-gray-200">
+      <h2 class="text-xl font-semibold mb-4">Generar Nueva Medalla y QR</h2>
+      
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Nombre de la mascota (Interno)</label>
+        <input type="text" id="petName" placeholder="Ej: Max (Perro de Juan)" class="w-full p-2 border rounded">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Número de WhatsApp del dueño (con código de país, sin +)</label>
+        <input type="text" id="phone" placeholder="Ej: 521234567890" class="w-full p-2 border rounded">
+      </div>
+
+      <div class="mb-4">
+        <label class="block text-gray-700 mb-2">Mensaje predeterminado</label>
+        <textarea id="message" class="w-full p-2 border rounded h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación:</textarea>
+      </div>
+
+      <button onclick="createTag()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-semibold w-full">
+        Generar Medalla y QR
+      </button>
+    </div>
+
+    <div class="bg-white p-6 rounded-lg shadow-md border border-gray-200">
+      <h2 class="text-xl font-semibold mb-4">Medallas Creadas</h2>
+      <div id="tagsList" class="space-y-3"></div>
+    </div>
+  </div>
+
+  <script>
+    // CONFIGURACIÓN DE FIREBASE (Pega tus datos aquí)
+    const firebaseConfig = {
+      apiKey: "AQUI_TU_API_KEY",
+      authDomain: "AQUI_TU_AUTH_DOMAIN",
+      projectId: "AQUI_TU_PROJECT_ID",
+      storageBucket: "AQUI_TU_STORAGE_BUCKET",
+      messagingSenderId: "AQUI_TU_MESSAGING_SENDER_ID",
+      appId: "AQUI_TU_APP_ID"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // URL base donde se alojará el proyecto en Vercel
+    // Por ahora usaremos un placeholder, lo cambiaremos cuando Vercel nos dé la URL
+    const BASE_URL = "https://medallas-qr.vercel.app/scan.html?id=";
+
+    // Función para crear una medalla
+    function createTag() {
+      const petName = document.getElementById('petName').value;
+      const phone = document.getElementById('phone').value;
+      const message = document.getElementById('message').value;
+
+      if (!phone || !message) {
+        alert("Por favor ingresa un número de WhatsApp y un mensaje");
+        return;
+      }
+
+      db.collection("tags").add({
+        petName: petName,
+        phone: phone,
+        message: message,
+        claimed: false,
+        createdAt: new Date()
+      }).then((docRef) => {
+        alert("¡Medalla creada! Generando QR...");
+        
+        // Generar y abrir QR
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${BASE_URL}${docRef.id}`;
+        window.open(qrUrl, '_blank');
+        
+        // Limpiar formulario
+        document.getElementById('petName').value = "";
+        document.getElementById('phone').value = "";
+        
+        // Recargar lista
+        loadTags();
+      }).catch((error) => {
+        alert("Error: " + error);
+      });
+    }
+
+    // Función para cargar las medallas
+    function loadTags() {
+      const list = document.getElementById('tagsList');
+      list.innerHTML = "<p class='text-gray-500'>Cargando...</p>";
+      
+      db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        list.innerHTML = "";
+        if (querySnapshot.empty) {
+          list.innerHTML = "<p class='text-gray-500'>No hay medallas creadas todavía.</p>";
+          return;
+        }
+        
+        querySnapshot.forEach((doc) => {
+          const tag = doc.data();
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=${BASE_URL}${doc.id}`;
+          
+          const html = `
+            <div class="border-b pb-3 flex justify-between items-center">
+              <div>
+                <p class="font-bold">${tag.petName || 'Sin nombre'}</p>
+                <p class="text-sm text-gray-500">WhatsApp: ${tag.phone}</p>
+                <p class="text-xs text-gray-400">ID: ${doc.id}</p>
+              </div>
+              <button onclick="window.open('${qrUrl}', '_blank')" class="bg-gray-200 px-3 py-1 rounded text-sm hover:bg-gray-300">
+                Ver QR
+              </button>
+            </div>
+          `;
+          list.innerHTML += html;
+        });
+      });
+    }
+
+    // Cargar al iniciar
+    loadTags();
+  </script>
+</body>
+</html>
