@@ -10,13 +10,11 @@
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center min-h-screen p-5">
   
-  <!-- Tarjeta Blanca -->
   <div id="content" class="bg-white p-8 rounded-2xl shadow-xl text-center max-w-sm w-full">
     <p class="text-gray-500 animate-pulse">Cargando información de la mascota...</p>
   </div>
 
   <script>
-    // === CONFIGURACIÓN FIREBASE ===
     const firebaseConfig = {
       apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0",
       authDomain: "petfind-50fb3.firebaseapp.com",
@@ -25,18 +23,16 @@
       messagingSenderId: "1077014067959",
       appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
     };
-    // ==============================
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    // Leer el ID que viene en el link del QR
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
 
     async function init() {
       if (!tagId) {
-        document.getElementById('content').innerHTML = "<p class='text-red-500 font-bold'>QR inválido.</p>";
+        document.getElementById('content').innerHTML = "<p class='text-red-500 font-bold'>QR inválido. No se encontró ID.</p>";
         return;
       }
 
@@ -44,10 +40,8 @@
         const docRef = db.collection("tags").doc(tagId);
         const docSnap = await docRef.get();
 
-        if (docSnap.exists()) {
+        if (docSnap.exists) {
           const tag = docSnap.data();
-          
-          // Guardamos los datos en variables globales para usarlas en los botones
           window.petPhone = tag.phone;
           window.petMessage = tag.message;
 
@@ -72,15 +66,18 @@
           document.getElementById('content').innerHTML = "<p class='text-red-500 font-bold'>Esta medalla no está registrada en PetFind.</p>";
         }
       } catch (error) {
-        console.error("Error:", error);
-        document.getElementById('content').innerHTML = "<p class='text-red-500'>Error al cargar los datos.</p>";
+        // AQUÍ ESTÁ EL CAMBIO: Nos mostrará el error exacto de Firebase
+        console.error("Error completo:", error);
+        document.getElementById('content').innerHTML = `
+          <p class='text-red-500 font-bold mb-2'>Error Firebase:</p>
+          <p class='text-gray-600 text-sm bg-gray-100 p-3 rounded-md'>${error.message}</p>
+        `;
       }
     }
 
-    // Función para pedir la ubicación del celular y abrir WhatsApp
     function sendLocation() {
       if (!navigator.geolocation) {
-        alert("Tu navegador no permite obtener la ubicación. Por favor usa el botón de solo enviar mensaje.");
+        alert("Tu navegador no permite obtener la ubicación.");
         return;
       }
 
@@ -91,26 +88,20 @@
           const lat = position.coords.latitude;
           const lon = position.coords.longitude;
           const mapsLink = `https://www.google.com/maps?q=${lat},${lon}`;
-          
-          // Combinar el mensaje del dueño con el link de maps
           const fullMessage = `${window.petMessage} Mi ubicación actual es: ${mapsLink}`;
-          
-          // Abrir WhatsApp
           window.location.href = `https://wa.me/${window.petPhone}?text=${encodeURIComponent(fullMessage)}`;
         },
         (error) => {
-          alert("No pudimos obtener tu ubicación. Te redirigiremos a WhatsApp para que escribas manualmente.");
+          alert("No pudimos obtener tu ubicación.");
           sendPlainMessage();
         }
       );
     }
 
-    // Función para solo abrir WhatsApp con el mensaje por defecto
     function sendPlainMessage() {
       window.location.href = `https://wa.me/${window.petPhone}?text=${encodeURIComponent(window.petMessage)}`;
     }
 
-    // Iniciar la app
     init();
   </script>
 </body>
