@@ -148,20 +148,21 @@
       });
     }
 
-    // Nueva función para eliminar
+    // Nueva función para eliminar (Inmunizada contra errores)
     window.deleteTag = async function(tagId) {
       if (confirm("¿Estás seguro de que quieres eliminar esta medalla? Esto borrará el registro de la base de datos.")) {
         try {
-          // 1. Eliminar el registro de la medalla (tags)
+          // 1. Eliminar la medalla (esto siempre se va a poder hacer)
           await db.collection("tags").doc(tagId).delete();
           
-          // 2. Si tenía perfil premium, eliminarlo también (pets)
-          await db.collection("pets").doc(tagId).delete();
+          // 2. Intentar eliminar el perfil premium (si existe)
+          // Usamos .catch(() => {}) para que si no existe o hay error, lo ignore en silencio
+          await db.collection("pets").doc(tagId).delete().catch(() => {});
           
           alert("Medalla eliminada con éxito.");
           loadTags(); // Recargar la lista
         } catch (error) {
-          alert("Error al eliminar: " + error.message);
+          alert("Error al eliminar la medalla: " + error.message);
         }
       }
     }
