@@ -49,7 +49,6 @@
         if (!tag.claimed) {
           renderClaimForm(tagId, tag.phone, tag.message);
         } else {
-          // Cargar datos públicos de la mascota
           const petSnap = await db.collection("pets").doc(tagId).get();
           if (petSnap.exists) {
             renderPublicProfile(petSnap.data(), tag.phone, tag.message);
@@ -63,19 +62,18 @@
       }
     }
 
-    // --- VISTA: RECLAMAR PERFIL ---
     function renderClaimForm(tagId, phone, message) {
       document.getElementById('content').innerHTML = `
         <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
           <div class="text-center mb-8">
             <div class="w-20 h-20 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">👑</div>
             <h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1>
-            <p class="text-slate-400 mt-2">Regístrate para personalizar el perfil de tu mascota y desbloquear todas las herramientas de PetFind.</p>
+            <p class="text-slate-400 mt-2">Si ya tienes una cuenta, inicia sesión. Si eres nuevo, regístrate.</p>
           </div>
           
           <div class="space-y-4">
             <input type="email" id="regEmail" placeholder="Tu correo electrónico" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="regPass" placeholder="Crea una contraseña" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
+            <input type="password" id="regPass" placeholder="Tu contraseña" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
             <button onclick="claimProfile('${tagId}', '${phone}', '${message}')" class="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-xl font-bold text-lg shadow-lg transition">
               Reclamar Perfil
             </button>
@@ -89,34 +87,49 @@
       const pass = document.getElementById('regPass').value;
       
       try {
-        // 1. Crear usuario
-        const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+        let userId;
         
-        // 2. Marcar medalla como reclamada
-        await db.collection("tags").doc(tagId).update({ claimed: true, ownerId: userCred.user.uid });
+        // Intentar registrar
+        try {
+          const userCred = await auth.createUserWithEmailAndPassword(email, pass);
+          userId = userCred.user.uid;
+        } catch (err) {
+          // Si el error es que el correo ya existe, INICIAR SESIÓN
+          if (err.code === 'auth/email-already-in-use') {
+            const userCred = await auth.signInWithEmailAndPassword(email, pass);
+            userId = userCred.user.uid;
+          } else {
+            throw err; // Si es otro error (ej: contraseña débil), lanzarlo
+          }
+        }
         
-        // 3. Crear perfil básico de mascota
-        await db.collection("pets").doc(tagId).set({
-          name: "Nombre de tu mascota",
-          description: "Cuéntanos sobre tu mascota...",
-          photoUrl: "",
-          medicalAlerts: "",
-          ownerPhone: phone,
-          defaultMessage: message
-        });
+        // Marcar medalla como reclamada
+        await db.collection("tags").doc(tagId).update({ claimed: true, ownerId: userId });
+        
+        // Crear perfil de mascota si no existe
+        const petRef = db.collection("pets").doc(tagId);
+        const petSnap = await petRef.get();
+        if (!petSnap.exists) {
+          await petRef.set({
+            name: "Nombre de tu mascota",
+            description: "Cuéntanos sobre tu mascota...",
+            photoUrl: "",
+            medicalAlerts: "",
+            ownerPhone: phone,
+            defaultMessage: message
+          });
+        }
 
-        // 4. Redirigir al panel privado para que complete los datos
+        // Redirigir al panel
         window.location.href = `dashboard.html?id=${tagId}`;
       } catch (error) {
-        alert("Error al registrar: " + error.message);
+        alert("Error: " + error.message);
       }
     }
 
-    // --- VISTA: PERFIL PÚBLICO PREMIUM ---
     function renderPublicProfile(pet, phone, message) {
       document.getElementById('content').innerHTML = `
         <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-          <!-- Cabecera de Foto -->
           <div class="relative h-64 bg-slate-700">
             ${pet.photoUrl ? 
               `<img src="${pet.photoUrl}" alt="${pet.name}" class="w-full h-full object-cover">` : 
@@ -127,7 +140,6 @@
           </div>
 
           <div class="p-6 space-y-6">
-            <!-- Alerta Médica (Premium) -->
             ${pet.medicalAlerts ? `
               <div class="bg-red-500/20 border border-red-500 rounded-xl p-4 flex items-start gap-3">
                 <span class="text-2xl">⚠️</span>
@@ -138,12 +150,10 @@
               </div>
             ` : ''}
 
-            <!-- Descripción -->
             <div>
               <p class="text-slate-300 leading-relaxed">${pet.description || 'Sin descripción.'}</p>
             </div>
 
-            <!-- Acciones -->
             <div class="space-y-3 pt-2">
               <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-2 transition">
                 <span>📍</span> Enviar mi Ubicación
