@@ -11,41 +11,57 @@
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
   <div class="max-w-4xl mx-auto">
     <div class="flex items-center justify-center mb-8 gap-3">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" />
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-      </svg>
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /></svg>
       <h1 class="text-4xl font-extrabold text-blue-800 tracking-tight">PetFind</h1>
     </div>
-    <p class="text-center text-gray-600 mb-10 text-lg">Panel de Super Admin - Gestión y Suscripciones</p>
     
+    <!-- CONFIGURACIÓN DE PAGOS -->
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <span>🏷️</span> Generar Nueva Medalla (Inventario)
-      </h2>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">💳 Configuración de Cobro</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-gray-700 mb-2 font-medium">Nombre de la Billetera (Yape, Plin, etc.)</label>
+          <input type="text" id="walletName" placeholder="Ej: Yape" class="w-full p-3 border rounded-xl">
+        </div>
+        <div>
+          <label class="block text-gray-700 mb-2 font-medium">Número de Celular / Cuenta</label>
+          <input type="text" id="walletNumber" placeholder="Ej: 51987654321" class="w-full p-3 border rounded-xl">
+        </div>
+      </div>
+      <button onclick="saveSettings()" class="mt-4 w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700">Guardar Datos de Cobro</button>
+    </div>
+
+    <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
       <div class="space-y-5">
         <div>
-          <label class="block text-gray-700 mb-2 font-medium">Tipo de Medalla (Plan)</label>
-          <select id="planType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
-            <option value="basic">Básico (Directo a WhatsApp)</option>
-            <option value="premium">Premium (Perfil Web Completo)</option>
-          </select>
+          <label class="block text-gray-700 mb-2 font-medium">Tipo de Medalla</label>
+          <select id="planType" class="w-full p-3 border rounded-xl"><option value="basic">Básico</option><option value="premium">Premium</option></select>
         </div>
         <div>
           <label class="block text-gray-700 mb-2 font-medium">Nombre interno (Opcional)</label>
-          <input type="text" id="petName" placeholder="Ej: Lote 1 - Medalla 05" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
+          <input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl">
         </div>
         <div>
           <label class="block text-gray-700 mb-2 font-medium">Mensaje predeterminado</label>
-          <textarea id="message" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación para que puedas recuperarla:</textarea>
+          <textarea id="message" class="w-full p-3 border rounded-xl h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación:</textarea>
         </div>
-        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-md transition">Generar Medalla y QR</button>
+        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold">Generar Medalla y QR</button>
       </div>
     </div>
 
     <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><span>📋</span> Inventario de Medallas</h2>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">📋 Inventario</h2>
       <div id="tagsList" class="space-y-4"></div>
+    </div>
+  </div>
+
+  <!-- Modal para ver el recibo -->
+  <div id="voucherModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-5 z-50" onclick="closeVoucher()">
+    <div class="bg-white p-4 rounded-2xl max-w-md w-full">
+      <h3 class="text-xl font-bold mb-4 text-center">Recibo de Pago</h3>
+      <img id="voucherImg" src="" class="w-full rounded-xl">
+      <p class="text-xs text-gray-400 text-center mt-2">Toca la imagen para guardarla o cierra aquí.</p>
     </div>
   </div>
 
@@ -58,29 +74,46 @@
       messagingSenderId: "1077014067959",
       appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
     };
-
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+
+    // Cargar configuración al inicio
+    async function loadSettings() {
+      const snap = await db.collection("settings").doc("payment").get();
+      if(snap.exists) {
+        document.getElementById('walletName').value = snap.data().walletName || "";
+        document.getElementById('walletNumber').value = snap.data().walletNumber || "";
+      }
+    }
+    
+    window.saveSettings = async function() {
+      const wName = document.getElementById('walletName').value;
+      const wNum = document.getElementById('walletNumber').value;
+      await db.collection("settings").doc("payment").set({ walletName: wName, walletNumber: wNum });
+      alert("¡Datos de cobro guardados!");
+    }
+
+    window.showVoucher = function(imgUrl) {
+      document.getElementById('voucherImg').src = imgUrl;
+      document.getElementById('voucherModal').classList.remove('hidden');
+      document.getElementById('voucherModal').classList.add('flex');
+    }
+    window.closeVoucher = function() {
+      document.getElementById('voucherModal').classList.add('hidden');
+    }
 
     function createTag() {
       const petName = document.getElementById('petName').value;
       const message = document.getElementById('message').value;
       const planType = document.getElementById('planType').value;
-      db.collection("tags").add({
-        petName: petName,
-        phone: "",
-        message: message,
-        plan: planType,
-        claimed: false,
-        createdAt: new Date()
-      }).then((docRef) => {
+      db.collection("tags").add({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
+      .then((docRef) => {
         alert("¡Medalla creada! Generando QR...");
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
-        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`;
-        window.open(qrUrl, '_blank');
+        window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`, '_blank');
         document.getElementById('petName').value = "";
         loadTags();
-      }).catch((error) => alert("Error: " + error));
+      });
     }
 
     function loadTags() {
@@ -88,101 +121,61 @@
       list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando...</p>";
       db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
         list.innerHTML = "";
-        if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center py-4'>No hay medallas.</p>"; return; }
+        if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
           const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://petfind-omega.vercel.app/${page}?id=${doc.id}`;
           const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
-          const phoneText = tag.phone ? tag.phone : '❌ Sin asignar';
           
-          let subStatus = "N/A";
-          let subColor = "bg-gray-100 text-gray-500";
-          let subButton = "";
-          let voucherButton = "";
-
+          let subStatus = "N/A", subColor = "bg-gray-100", subButton = "", voucherButton = "";
           if(tag.plan === 'premium' && tag.claimed) {
-            if(tag.voucherUrl) {
-              voucherButton = `<button onclick="window.open('${tag.voucherUrl}', '_blank')" class="w-full bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200">🧾 Ver Recibo</button>`;
-            }
-            
+            if(tag.voucherUrl) { voucherButton = `<button onclick="showVoucher('${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium">🧾 Ver Recibo</button>`; }
             if(tag.subscriptionExpires) {
               const exp = new Date(tag.subscriptionExpires);
-              if(exp > new Date()) {
-                subStatus = `Activo hasta: ${exp.toLocaleDateString()}`;
-                subColor = "bg-green-100 text-green-700";
-              } else {
-                subStatus = "Vencido";
-                subColor = "bg-red-100 text-red-700";
-              }
-            } else {
-              subStatus = "Pendiente de Pago";
-              subColor = "bg-yellow-100 text-yellow-700";
-            }
-            subButton = `<button onclick="activateSub('${doc.id}')" class="w-full bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-200">✅ Activar 30 días</button>`;
+              if(exp > new Date()) { subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700"; }
+              else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
+            } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
+            subButton = `<button onclick="activateSub('${doc.id}')" class="bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium">✅ Activar 30d</button>`;
           }
 
-          const html = `
-            <div class="flex flex-col p-4 bg-gray-50 rounded-xl border border-gray-100">
+          list.innerHTML += `
+            <div class="flex flex-col p-4 bg-gray-50 rounded-xl border">
               <div class="flex justify-between items-center mb-2">
                 <div class="flex items-center gap-2">
-                  <p class="font-bold text-gray-800 text-lg">${tag.petName || 'Sin nombre'}</p>
+                  <p class="font-bold text-gray-800">${tag.petName || 'Sin nombre'}</p>
                   <span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span>
                 </div>
                 ${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}
               </div>
-              <p class="text-sm text-gray-500 mb-1">📞 WhatsApp: ${phoneText}</p>
-              <p class="text-xs text-gray-400 mt-1 break-all">ID: ${doc.id}</p>
-              
-              <div class="mt-2 mb-3">
-                 <span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span>
-              </div>
-
+              <p class="text-sm text-gray-500">📞 ${tag.phone || 'Sin asignar'}</p>
+              <div class="my-2"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span></div>
               <div class="grid grid-cols-2 gap-2 mt-3">
-                <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200">Ver QR</button>
+                <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">Ver QR</button>
                 ${voucherButton}
                 ${subButton}
-                ${tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-200">Asignar WhatsApp</button>` : ''}
-                <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200">🗑️ Eliminar</button>
+                ${tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm">Asignar WhatsApp</button>` : ''}
+                <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">🗑️ Eliminar</button>
               </div>
-            </div>
-          `;
-          list.innerHTML += html;
+            </div>`;
         });
       });
     }
 
     window.activateSub = async function(tagId) {
-      let d = new Date();
-      d.setDate(d.getDate() + 30); // Sumar 30 días
-      try {
-        await db.collection("tags").doc(tagId).update({ 
-          subscriptionExpires: d.toISOString(),
-          voucherUrl: "" // Limpiar el recibo una vez activado
-        });
-        alert("¡Suscripción activada por 30 días!");
-        loadTags();
-      } catch(e) { alert("Error: " + e.message); }
+      let d = new Date(); d.setDate(d.getDate() + 30);
+      await db.collection("tags").doc(tagId).update({ subscriptionExpires: d.toISOString(), voucherUrl: "" });
+      alert("¡Suscripción activada por 30 días!"); loadTags();
     }
-
-    window.editPhone = async function(tagId, currentPhone) {
-      const newPhone = prompt("Ingresa el WhatsApp (Ej: 51987654321):", currentPhone);
-      if (newPhone !== null) {
-        await db.collection("tags").doc(tagId).update({ phone: newPhone });
-        alert("WhatsApp actualizado.");
-        loadTags();
-      }
+    window.editPhone = async function(tagId, p) {
+      const np = prompt("WhatsApp (Ej: 51987654321):", p);
+      if (np !== null) { await db.collection("tags").doc(tagId).update({ phone: np }); alert("Actualizado."); loadTags(); }
     }
-
     window.deleteTag = async function(tagId) {
-      if (confirm("¿Eliminar esta medalla?")) {
-        await db.collection("tags").doc(tagId).delete();
-        await db.collection("pets").doc(tagId).delete().catch(() => {});
-        alert("Eliminada.");
-        loadTags();
-      }
+      if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); alert("Eliminada."); loadTags(); }
     }
 
+    loadSettings();
     loadTags();
   </script>
 </body>
