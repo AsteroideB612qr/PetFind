@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PetFind - Mascota Encontrada</title>
+  <title>PetFind - Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
 </head>
-<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-5">
-  <div id="content" class="w-full max-w-md">
-    <p class="text-gray-400 animate-pulse text-center">Cargando PetFind...</p>
+<body class="bg-slate-100 min-h-screen">
+  <div id="content" class="max-w-3xl mx-auto p-5">
+    <p class="text-gray-500 text-center animate-pulse mt-20">Cargando tu panel privado...</p>
   </div>
 
   <script>
@@ -27,176 +27,183 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
+    let petState = {};
+    let tagState = {};
 
-    async function init() {
-      if (!tagId) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>QR inválido.</p>";
-
-      try {
-        const docSnap = await db.collection("tags").doc(tagId).get();
-        if (!docSnap.exists) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>Medalla no registrada.</p>";
-
-        const tag = docSnap.data();
-        
-        if (!tag.claimed) {
-          renderClaimForm(tagId, tag.message);
-        } else {
-          // Revisar suscripción
-          const isActive = tag.subscriptionExpires && new Date(tag.subscriptionExpires) > new Date();
-          if(!isActive) {
-            renderDisabledProfile();
-            return;
-          }
-
-          const petSnap = await db.collection("pets").doc(tagId).get();
-          if (petSnap.exists) {
-            const petData = petSnap.data();
-            const finalPhone = petData.ownerPhone || tag.phone;
-            renderPublicProfile(petData, finalPhone, tag.message);
-          } else {
-            renderPublicProfile({name: "Mascota", description: "Perfil en configuración."}, tag.phone, tag.message);
-          }
-        }
-      } catch (error) {
-        document.getElementById('content').innerHTML = `<p class='text-red-400'>Error: ${error.message}</p>`;
+    auth.onAuthStateChanged(async (user) => {
+      if (!user) {
+        document.getElementById('content').innerHTML = `<div class="text-center mt-20"><p class="text-xl text-gray-600 mb-4">Debes iniciar sesión.</p><a href="scan.html?id=${tagId}" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Volver</a></div>`;
+        return;
       }
-    }
+      const petSnap = await db.collection("pets").doc(tagId).get();
+      const tagSnap = await db.collection("tags").doc(tagId).get();
+      if (petSnap.exists && tagSnap.exists) {
+        petState = petSnap.data();
+        tagState = tagSnap.data();
+        if(!petState.events) petState.events = [];
+        renderDashboard();
+      } else {
+        document.getElementById('content').innerHTML = "<p class='text-red-500 text-center mt-20'>Perfil no encontrado.</p>";
+      }
+    });
 
-    function renderClaimForm(tagId, message) {
+    function renderDashboard() {
+      const expDate = tagState.subscriptionExpires ? new Date(tagState.subscriptionExpires) : null;
+      const isActive = expDate && expDate > new Date();
+      const subText = isActive ? `Activo hasta ${expDate.toLocaleDateString()}` : "Pendiente / Vencido";
+      const subColor = isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+      const currentCountry = (petState.ownerPhone || "").substring(0, 2);
+      const currentPhone = (petState.ownerPhone || "").substring(2);
+
       document.getElementById('content').innerHTML = `
-        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
-          <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">👑</div>
-            <h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1>
-            <p class="text-slate-400 mt-2">Regístrate para personalizar el perfil.</p>
+        <div class="flex items-center justify-between mb-8 pt-8">
+          <div class="flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /></svg>
+            <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>
           </div>
-          
-          <div class="space-y-4">
-            <input type="email" id="regEmail" placeholder="Tu correo electrónico" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="regPass" placeholder="Crea una contraseña" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            
-            <div class="flex gap-2">
-              <select id="regCountry" class="w-1/3 p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-                <option value="51">🇵🇪 +51</option>
-                <option value="52">🇲🇽 +52</option>
-                <option value="57">🇨🇴 +57</option>
-                <option value="54">🇦🇷 +54</option>
-                <option value="56">🇨🇱 +56</option>
-                <option value="34">🇪🇸 +34</option>
-                <option value="1">🇺🇸 +1</option>
-              </select>
-              <input type="text" id="regPhone" placeholder="Número sin código" class="w-2/3 p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            </div>
+          <button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium">Cerrar Sesión</button>
+        </div>
 
-            <button onclick="claimProfile('${tagId}', '${message}')" class="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-xl font-bold text-lg shadow-lg transition">Reclamar Perfil</button>
+        <!-- SUSCRIPCIÓN -->
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white flex justify-between items-center">
+            <h2 class="text-xl font-bold">👑 Membresía PetFind</h2>
+            <span class="text-sm bg-white/20 px-3 py-1 rounded-full">${subText}</span>
+          </div>
+          <div class="p-6 space-y-4">
+            ${!isActive ? `
+              <div class="text-center space-y-3">
+                <p class="text-gray-600 font-medium">Para mantener el perfil activo, realiza el pago de S/ 15.00 (o tu moneda local) a la siguiente cuenta:</p>
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                  <p class="text-xl font-bold text-slate-800">Yape / Plin: 984908819</p>
+                  <p class="text-sm text-gray-500">A nombre de: Tu Nombre</p>
+                </div>
+                <p class="text-gray-600">Sube el captura del recibo y solicita activación:</p>
+                
+                <input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)">
+                <button onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium hover:bg-yellow-200">🧾 Adjuntar Recibo</button>
+                <button onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-orange-700">Solicitar Activación</button>
+              </div>
+            ` : `<p class="text-green-600 font-bold text-center">¡Tu mascota está protegida! Gracias por tu pago.</p>`}
           </div>
         </div>
+
+        <!-- PERFIL PÚBLICO -->
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white"><h2 class="text-xl font-bold">Perfil de la Mascota</h2></div>
+          <div class="p-6 space-y-5">
+            <div class="flex flex-col items-center mb-4">
+              <img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" alt="Foto" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white">
+              <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+              <button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">📸 Subir Foto</button>
+            </div>
+            <div><label class="block text-gray-700 font-medium mb-1">Nombre</label><input type="text" id="petName" value="${petState.name || ''}" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500"></div>
+            <div><label class="block text-gray-700 font-medium mb-1">Descripción</label><textarea id="petDesc" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500 h-20">${petState.description || ''}</textarea></div>
+            <div><label class="block text-gray-700 font-medium mb-1">🚨 Alertas Médicas</label><input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" placeholder="Ej: Diabético" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500"></div>
+            <div><label class="block text-gray-700 font-medium mb-1">WhatsApp</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500"><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" class="w-2/3 p-3 border rounded-xl focus:ring-2 focus:ring-blue-500"></div></div>
+            <button onclick="savePublicProfile()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md">💾 Guardar Perfil Público</button>
+          </div>
+        </div>
+
+        <!-- EXPEDIENTE MÉDICO -->
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white"><h2 class="text-xl font-bold">📋 Calendario y Expediente Médico</h2></div>
+          <div class="p-6 space-y-5">
+            <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+              <h3 class="font-bold text-slate-700 mb-3">➕ Agregar Nuevo Evento</h3>
+              <div class="grid grid-cols-2 gap-3">
+                <select id="evType" class="p-2 border rounded-lg w-full"><option value="Vacuna">Vacuna</option><option value="Desparasitación">Desparasitación</option><option value="Cita Médica">Cita Médica</option></select>
+                <input type="text" id="evName" placeholder="Nombre" class="p-2 border rounded-lg w-full">
+                <input type="date" id="evDate" class="p-2 border rounded-lg w-full">
+                <select id="evStatus" class="p-2 border rounded-lg w-full"><option value="Pendiente">Pendiente</option><option value="Aplicada">Aplicada</option></select>
+              </div>
+              <button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700">Agregar</button>
+            </div>
+            <div><h3 class="font-bold text-slate-700 mb-3">📅 Historial</h3><div id="eventsList" class="space-y-2"></div></div>
+            <div class="pt-4 border-t mt-4"><label class="block text-gray-700 font-medium mb-1">💊 Recetas Médicas</label><textarea id="petRx" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 h-24" placeholder="Medicamentos, dosis...">${petState.rx || ''}</textarea></div>
+            <div><label class="block text-gray-700 font-medium mb-1">📝 Notas Privadas</label><textarea id="petNotes" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 h-24" placeholder="Notas...">${petState.notes || ''}</textarea></div>
+            <button onclick="saveMedicalProfile()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl font-bold shadow-md">💾 Guardar Expediente</button>
+          </div>
+        </div>
+        <div class="text-center pb-10"><a href="scan.html?id=${tagId}" target="_blank" class="text-blue-600 underline">Ver mi perfil público</a></div>
       `;
+      renderEvents();
     }
 
-    window.claimProfile = async function(tagId, message) {
-      const email = document.getElementById('regEmail').value;
-      const pass = document.getElementById('regPass').value;
-      const country = document.getElementById('regCountry').value;
-      const phoneNum = document.getElementById('regPhone').value;
-      const phone = country + phoneNum;
-      
-      if(!phoneNum) return alert("Por favor ingresa tu número.");
-      
+    window.addEvent = function() {
+      const type = document.getElementById('evType').value; const name = document.getElementById('evName').value; const date = document.getElementById('evDate').value; const status = document.getElementById('evStatus').value;
+      if(!name || !date) return alert("Completa nombre y fecha");
+      petState.events.push({ type, name, date, status });
+      document.getElementById('evName').value = ''; document.getElementById('evDate').value = '';
+      renderEvents();
+    }
+
+    window.deleteEvent = function(i) { petState.events.splice(i, 1); renderEvents(); }
+
+    window.renderEvents = function() {
+      const list = document.getElementById('eventsList');
+      if(!petState.events || petState.events.length === 0) return list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos.</p>";
+      petState.events.sort((a,b) => new Date(b.date) - new Date(a.date));
+      list.innerHTML = petState.events.map((ev, i) => {
+        const sc = ev.status === 'Pendiente' ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800';
+        return `<div class="flex justify-between items-center p-3 bg-white border rounded-lg shadow-sm"><div><span class="text-xs font-bold uppercase text-gray-500">${ev.type}</span><p class="font-bold text-gray-800">${ev.name}</p><p class="text-sm text-gray-500">📅 ${ev.date} - <span class="px-2 py-1 rounded-full text-xs ${sc}">${ev.status}</span></p></div><button onclick="deleteEvent(${i})" class="text-red-500 hover:text-red-700 text-sm">🗑️</button></div>`;
+      }).join('');
+    }
+
+    window.handleFileSelect = function(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image(); img.onload = function() {
+          const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+          let width = img.width, height = img.height;
+          if (width > height) { if (width > 300) { height *= 300 / width; width = 300; } } else { if (height > 300) { width *= 300 / height; height = 300; } }
+          canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
+          const dataURL = canvas.toDataURL('image/jpeg', 0.7);
+          document.getElementById('imgPreview').src = dataURL; window.base64Photo = dataURL;
+        }; img.src = e.target.result;
+      }; reader.readAsDataURL(file);
+    };
+
+    // Compresor de Recibo (Voucher)
+    window.handleVoucherSelect = function(event) {
+      const file = event.target.files[0]; if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image(); img.onload = function() {
+          const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
+          let width = img.width, height = img.height;
+          if (width > height) { if (width > 600) { height *= 600 / width; width = 600; } } else { if (height > 600) { width *= 600 / height; height = 600; } }
+          canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height);
+          window.base64Voucher = canvas.toDataURL('image/jpeg', 0.6); // Muy comprimido
+          alert("Recibo cargado. Ahora presiona 'Solicitar Activación'.");
+        }; img.src = e.target.result;
+      }; reader.readAsDataURL(file);
+    };
+
+    window.submitVoucher = async function() {
+      if(!window.base64Voucher) return alert("Por favor adjunta la imagen del recibo primero.");
       try {
-        let userId;
-        try {
-          const userCred = await auth.createUserWithEmailAndPassword(email, pass);
-          userId = userCred.user.uid;
-        } catch (err) {
-          if (err.code === 'auth/email-already-in-use') {
-            const userCred = await auth.signInWithEmailAndPassword(email, pass);
-            userId = userCred.user.uid;
-          } else { throw err; }
-        }
-        
-        await db.collection("tags").doc(tagId).update({ claimed: true, ownerId: userId, phone: phone });
-        const petRef = db.collection("pets").doc(tagId);
-        const petSnap = await petRef.get();
-        if (!petSnap.exists) {
-          await petRef.set({ name: "Nombre de tu mascota", description: "Cuéntanos sobre tu mascota...", photoUrl: "", medicalAlerts: "", ownerPhone: phone, defaultMessage: message });
-        }
-        window.location.href = `dashboard.html?id=${tagId}`;
-      } catch (error) { alert("Error: " + error.message); }
+        await db.collection("tags").doc(tagId).update({ voucherUrl: window.base64Voucher });
+        alert("¡Recibo enviado! El administrador revisará tu pago y activará tu servicio pronto.");
+        window.location.reload();
+      } catch(e) { alert("Error: " + e.message); }
+    };
+
+    window.savePublicProfile = async function() {
+      const cCode = document.getElementById('petCountry').value;
+      const pNum = document.getElementById('petPhone').value;
+      const phoneVal = cCode + pNum;
+      const data = { photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: phoneVal };
+      try { await db.collection("pets").doc(tagId).update(data); await db.collection("tags").doc(tagId).update({ phone: phoneVal }); alert("¡Perfil guardado y sincronizado!"); } catch (e) { alert("Error: " + e.message); }
     }
 
-    function renderPublicProfile(pet, phone, message) {
-      let hasPending = false;
-      if (pet.events && pet.events.length > 0) hasPending = pet.events.some(ev => ev.status === 'Pendiente');
-
-      document.getElementById('content').innerHTML = `
-        <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
-          <div class="relative h-64 bg-slate-700">
-            ${pet.photoUrl ? `<img src="${pet.photoUrl}" alt="${pet.name}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-6xl">🐾</div>`}
-            <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
-            <h1 class="absolute bottom-4 left-6 text-4xl font-extrabold text-white drop-shadow-lg">${pet.name || 'Mascota'}</h1>
-          </div>
-          <div class="p-6 space-y-6">
-            ${pet.medicalAlerts ? `<div class="bg-red-500/20 border border-red-500 rounded-xl p-4 flex items-start gap-3"><span class="text-2xl">⚠️</span><div><h3 class="font-bold text-red-400">Alerta Médica</h3><p class="text-sm text-red-200">${pet.medicalAlerts}</p></div></div>` : ''}
-            <div><p class="text-slate-300 leading-relaxed">${pet.description || 'Sin descripción.'}</p></div>
-            ${hasPending ? `<div class="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 flex items-center gap-3 animate-pulse"><span class="text-2xl">🔔</span><div><h3 class="font-bold text-yellow-400">Tienes eventos pendientes</h3><p class="text-sm text-yellow-200">Ingresa al panel del dueño para revisar.</p></div></div>` : ''}
-            <div class="space-y-3 pt-2">
-              <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 hover:bg-green-600 text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md flex items-center justify-center gap-2 transition"><span>📍</span> Enviar mi Ubicación</button>
-              <button onclick="sendPlainMessage('${phone}', '${message}')" class="w-full bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-xl font-medium text-md transition">💬 Solo enviar un Mensaje</button>
-            </div>
-            <div class="text-center pt-4 border-t border-slate-700 mt-4"><button onclick="showOwnerLogin()" class="text-slate-600 hover:text-slate-400 text-xs underline transition">🔒 Acceso Dueño</button></div>
-          </div>
-        </div>
-      `;
+    window.saveMedicalProfile = async function() {
+      const data = { events: petState.events || [], rx: document.getElementById('petRx').value, notes: document.getElementById('petNotes').value };
+      try { await db.collection("pets").doc(tagId).update(data); alert("¡Expediente médico guardado!"); } catch (e) { alert("Error: " + e.message); }
     }
-
-    function renderDisabledProfile() {
-      document.getElementById('content').innerHTML = `
-        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-red-800 text-center">
-          <div class="w-20 h-20 bg-red-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">⏳</div>
-          <h1 class="text-3xl font-extrabold text-white mb-2">Servicio Inhabilitado</h1>
-          <p class="text-slate-400 mt-2 mb-6">El plan premium de esta mascota ha expirado o está pendiente de activación. Por favor, contacta al soporte de PetFind para reactivar la medalla.</p>
-          <div class="bg-slate-700 p-4 rounded-xl text-left">
-            <p class="text-sm text-slate-300">📧 soporte@petfind.com</p>
-            <p class="text-sm text-slate-300">💬 WhatsApp: +51 999 888 777</p>
-          </div>
-        </div>
-      `;
-    }
-
-    window.showOwnerLogin = function() {
-      document.getElementById('content').innerHTML = `
-        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
-          <h2 class="text-2xl font-bold text-white mb-4">Panel del Dueño</h2>
-          <div class="space-y-4">
-            <input type="email" id="loginEmail" placeholder="Correo electrónico" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            <input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            <button onclick="loginOwner()" class="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-xl font-bold text-lg shadow-lg transition">Iniciar Sesión</button>
-            <button onclick="history.back()" class="w-full text-slate-500 hover:text-slate-300 text-sm mt-2">Volver</button>
-          </div>
-        </div>`;
-    }
-
-    window.loginOwner = async function() {
-      const email = document.getElementById('loginEmail').value;
-      const pass = document.getElementById('loginPass').value;
-      try { await auth.signInWithEmailAndPassword(email, pass); window.location.href = `dashboard.html?id=${tagId}`; } 
-      catch (e) { alert("Error: " + e.message); }
-    }
-
-    window.sendLocation = function(phone, message) {
-      if (!navigator.geolocation) return alert("Ubicación no soportada.");
-      document.getElementById('content').innerHTML = "<p class='text-blue-400 animate-pulse text-center text-lg'>Obteniendo ubicación...</p>";
-      navigator.geolocation.getCurrentPosition(
-        (pos) => { const link = `https://www.google.com/maps?q=${pos.coords.latitude},${pos.coords.longitude}`; window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message + " Mi ubicación es: " + link)}`; },
-        () => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-      );
-    }
-
-    window.sendPlainMessage = function(phone, message) { window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`; }
-    init();
   </script>
 </body>
 </html>
