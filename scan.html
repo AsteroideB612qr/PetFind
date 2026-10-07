@@ -100,12 +100,18 @@
             <div class="absolute inset-0 bg-gradient-to-t from-slate-900 to-transparent"></div>
             <h1 class="absolute bottom-4 left-6 text-4xl font-extrabold text-white">${pet.name || 'Mascota'}</h1>
           </div>
+          
           <div class="p-6 space-y-6">
+            <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 px-6 py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2">📍 Enviar mi Ubicación</button>
+            <button onclick="sendPlainMessage('${phone}', '${message}')" class="w-full bg-slate-700 px-6 py-3 rounded-xl font-medium">💬 Enviar un Mensaje</button>
+            
+            <div class="border-t border-slate-700 pt-4">
+              <p class="text-slate-300 leading-relaxed">${pet.description || 'Sin descripción.'}</p>
+            </div>
+
             ${pet.medicalAlerts ? `<div class="bg-red-500/20 border border-red-500 rounded-xl p-4 flex gap-3"><span class="text-2xl">⚠️</span><div><h3 class="font-bold text-red-400">Alerta Médica</h3><p class="text-sm text-red-200">${pet.medicalAlerts}</p></div></div>` : ''}
-            <p class="text-slate-300">${pet.description || ''}</p>
+            
             ${hasPending ? `<div class="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 flex gap-3 animate-pulse"><span class="text-2xl">🔔</span><div><h3 class="font-bold text-yellow-400">Eventos pendientes</h3><p class="text-sm text-yellow-200">Revisa el calendario en tu panel.</p></div></div>` : ''}
-            <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 px-6 py-4 rounded-xl font-bold text-lg">📍 Enviar mi Ubicación</button>
-            <button onclick="sendPlainMessage('${phone}', '${message}')" class="w-full bg-slate-700 px-6 py-3 rounded-xl">💬 Solo enviar un Mensaje</button>
             
             <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=${encodeURIComponent(globalSettings.waSalesMsg || 'Hola PetFind, quiero info.')}" target="_blank" class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-medium text-center block">🛍️ Comprar esta Medalla</a>
             
