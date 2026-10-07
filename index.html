@@ -21,7 +21,7 @@
     
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <span>🏷️</span> Generar Nueva Medalla
+        <span>🏷️</span> Generar Nueva Medalla (Inventario)
       </h2>
       
       <div class="space-y-5">
@@ -34,17 +34,17 @@
         </div>
 
         <div>
-          <label class="block text-gray-700 mb-2 font-medium">Nombre de la mascota (Uso interno)</label>
-          <input type="text" id="petName" placeholder="Ej: Max (Perro de Juan)" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+          <label class="block text-gray-700 mb-2 font-medium">Nombre interno de la medalla (Opcional)</label>
+          <input type="text" id="petName" placeholder="Ej: Lote 1 - Medalla 05" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
         </div>
 
         <div>
-          <label class="block text-gray-700 mb-2 font-medium">Número de WhatsApp del dueño (Con código de país, sin +)</label>
+          <label class="block text-gray-700 mb-2 font-medium">Número de WhatsApp del dueño (Dejar vacío para asignar después)</label>
           <input type="text" id="phone" placeholder="Ej: 521234567890" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
         </div>
 
         <div>
-          <label class="block text-gray-700 mb-2 font-medium">Mensaje predeterminado que verá quien escanee</label>
+          <label class="block text-gray-700 mb-2 font-medium">Mensaje predeterminado</label>
           <textarea id="message" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación para que puedas recuperarla:</textarea>
         </div>
 
@@ -56,7 +56,7 @@
 
     <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <span>📋</span> Medallas Creadas
+        <span>📋</span> Inventario de Medallas
       </h2>
       <div id="tagsList" class="space-y-4"></div>
     </div>
@@ -81,14 +81,9 @@
       const message = document.getElementById('message').value;
       const planType = document.getElementById('planType').value;
 
-      if (!phone || !message) {
-        alert("Por favor ingresa un número de WhatsApp y un mensaje");
-        return;
-      }
-
       db.collection("tags").add({
         petName: petName,
-        phone: phone,
+        phone: phone, // Puede quedar vacío
         message: message,
         plan: planType,
         claimed: false,
@@ -122,23 +117,29 @@
           const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://petfind-omega.vercel.app/${page}?id=${doc.id}`;
           const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
+          const phoneText = tag.phone ? tag.phone : '❌ Sin asignar';
           
           const html = `
-            <div class="flex justify-between items-center p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
+            <div class="flex flex-col p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div class="flex justify-between items-center mb-2">
+                <div class="flex items-center gap-2">
                   <p class="font-bold text-gray-800 text-lg">${tag.petName || 'Sin nombre'}</p>
                   <span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span>
                 </div>
-                <p class="text-sm text-gray-500">📞 WhatsApp: ${tag.phone}</p>
-                <p class="text-xs text-gray-400 mt-1 break-all">ID: ${doc.id}</p>
+                ${tag.claimed ? '<span class="text-xs bg-green-200 text-green-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}
               </div>
-              <div class="flex gap-2">
-                <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
+              <p class="text-sm text-gray-500 mb-1">📞 WhatsApp: ${phoneText}</p>
+              <p class="text-xs text-gray-400 mt-1 break-all">ID: ${doc.id}</p>
+              
+              <div class="flex gap-2 mt-3">
+                <button onclick="window.open('${qrUrl}', '_blank')" class="flex-1 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
                   Ver QR
                 </button>
+                <button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="flex-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-200 transition">
+                  ✏️ Asignar WhatsApp
+                </button>
                 <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition">
-                  🗑️ Eliminar
+                  🗑️
                 </button>
               </div>
             </div>
@@ -148,19 +149,27 @@
       });
     }
 
-    // Nueva función para eliminar (Inmunizada contra errores)
-    window.deleteTag = async function(tagId) {
-      if (confirm("¿Estás seguro de que quieres eliminar esta medalla? Esto borrará el registro de la base de datos.")) {
+    // Función para que el admin asigne o cambie el WhatsApp
+    window.editPhone = async function(tagId, currentPhone) {
+      const newPhone = prompt("Ingresa el número de WhatsApp del dueño (con código de país, sin +):", currentPhone);
+      if (newPhone !== null) {
         try {
-          // 1. Eliminar la medalla (esto siempre se va a poder hacer)
+          await db.collection("tags").doc(tagId).update({ phone: newPhone });
+          alert("¡WhatsApp actualizado! La medalla ahora apunta a este número.");
+          loadTags();
+        } catch (e) {
+          alert("Error: " + e.message);
+        }
+      }
+    }
+
+    window.deleteTag = async function(tagId) {
+      if (confirm("¿Estás seguro de que quieres eliminar esta medalla?")) {
+        try {
           await db.collection("tags").doc(tagId).delete();
-          
-          // 2. Intentar eliminar el perfil premium (si existe)
-          // Usamos .catch(() => {}) para que si no existe o hay error, lo ignore en silencio
           await db.collection("pets").doc(tagId).delete().catch(() => {});
-          
           alert("Medalla eliminada con éxito.");
-          loadTags(); // Recargar la lista
+          loadTags();
         } catch (error) {
           alert("Error al eliminar la medalla: " + error.message);
         }
