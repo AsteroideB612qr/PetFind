@@ -58,9 +58,11 @@
 
       let membershipHTML = '';
       if (isActive) {
-        membershipHTML = `<p class="text-green-600 font-bold text-center">¡Tu mascota está protegida! Vence el ${expDate.toLocaleDateString()}</p>`;
+        membershipHTML = `<p class="text-green-600 font-bold text-center">✅ ¡Tu mascota está protegida! Vence el ${expDate.toLocaleDateString()}</p>`;
+      } else if (payStatus === 'pending') {
+        membershipHTML = `<p class="text-blue-600 font-bold text-center">⏳ Recibo enviado, esperando revisión del administrador.</p>`;
       } else if (payStatus === 'approved') {
-        membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu cuenta en breve.</p>`;
+        membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu suscripción en breve.</p>`;
       } else if (payStatus === 'rejected') {
         membershipHTML = `
           <p class="text-red-600 font-bold text-center">❌ Hubo un problema con tu recibo. Contacta a soporte.</p>
@@ -69,7 +71,7 @@
       } else {
         membershipHTML = `
           <div class="text-center space-y-3">
-            <p class="text-gray-600">Realiza el pago de ${settingsState.subPrice || '15.00'} a la siguiente cuenta:</p>
+            <p class="text-gray-600 font-medium">Tu membresía ha vencido. Realiza el pago de renovación de S/ ${settingsState.subPrice || '15.00'} a la siguiente cuenta:</p>
             <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
               <div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div>
               <button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Número copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button>
@@ -114,7 +116,7 @@
             <div class="bg-slate-50 p-4 rounded-xl border">
               <h3 class="font-bold mb-3">➕ Agregar Evento</h3>
               <div class="grid grid-cols-2 gap-3">
-                <select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option></select>
+                <select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option><option>Otro</option></select>
                 <input type="text" id="evName" placeholder="Nombre" class="p-2 border rounded-lg w-full">
                 <input type="date" id="evDate" class="p-2 border rounded-lg w-full">
                 <select id="evStatus" class="p-2 border rounded-lg w-full"><option>Pendiente</option><option>Aplicada</option></select>
@@ -136,7 +138,7 @@
     
     window.editEvent = function(i) {
       const ev = petState.events[i];
-      const type = prompt("Editar Tipo (Vacuna, Desparasitación, Cita Médica):", ev.type);
+      const type = prompt("Editar Tipo (Vacuna, Desparasitación, Cita Médica, Otro):", ev.type);
       if (type === null) return;
       const name = prompt("Editar Nombre:", ev.name);
       if (name === null) return;
