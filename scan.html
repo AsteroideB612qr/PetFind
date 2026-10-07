@@ -51,7 +51,10 @@
         } else {
           const petSnap = await db.collection("pets").doc(tagId).get();
           if (petSnap.exists) {
-            renderPublicProfile(petSnap.data(), tag.phone, tag.message);
+            // Usamos el teléfono de pets si existe, si no el de tags
+            const petData = petSnap.data();
+            const finalPhone = petData.ownerPhone || tag.phone;
+            renderPublicProfile(petData, finalPhone, tag.message);
           } else {
             renderPublicProfile({name: "Mascota", description: "Perfil en configuración."}, tag.phone, tag.message);
           }
@@ -74,7 +77,12 @@
           <div class="space-y-4">
             <input type="email" id="regEmail" placeholder="Tu correo electrónico" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
             <input type="password" id="regPass" placeholder="Crea una contraseña" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
-            <input type="text" id="regPhone" placeholder="Tu WhatsApp (Ej: 521234567890)" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-blue-500">
+            
+            <div>
+              <input type="text" id="regPhone" placeholder="Tu WhatsApp (Ej: 521234567890)" class="w-full p-4 bg-slate-700 rounded-xl border-none focus:ring-2 focus:ring-red-500">
+              <p class="text-red-400 text-xs mt-2 text-center">⚠️ Importante: Incluye código de país (ej: 52 para México) sin el signo +. Sin esto, no podremos enviarte el mensaje.</p>
+            </div>
+
             <button onclick="claimProfile('${tagId}', '${message}')" class="w-full bg-blue-600 hover:bg-blue-700 px-6 py-4 rounded-xl font-bold text-lg shadow-lg transition">
               Reclamar Perfil
             </button>
@@ -89,6 +97,7 @@
       const phone = document.getElementById('regPhone').value;
       
       if(!phone) return alert("Por favor ingresa tu número de WhatsApp.");
+      if(!phone.match(/^\d{8,15}$/)) return alert("El número de WhatsApp no es válido. Asegúrate de incluir el código de país.");
       
       try {
         let userId;
@@ -104,14 +113,12 @@
           }
         }
         
-        // Actualizamos la medalla con el teléfono del dueño y la marcamos reclamada
         await db.collection("tags").doc(tagId).update({ 
           claimed: true, 
           ownerId: userId,
-          phone: phone // ¡Aquí asignamos el número al QR!
+          phone: phone
         });
         
-        // Creamos el perfil de la mascota
         const petRef = db.collection("pets").doc(tagId);
         const petSnap = await petRef.get();
         if (!petSnap.exists) {
@@ -131,7 +138,6 @@
     }
 
     function renderPublicProfile(pet, phone, message) {
-      // Lógica de alerta médica ciega
       let hasPending = false;
       if (pet.events && pet.events.length > 0) {
         hasPending = pet.events.some(ev => ev.status === 'Pendiente');
@@ -163,7 +169,6 @@
               <p class="text-slate-300 leading-relaxed">${pet.description || 'Sin descripción.'}</p>
             </div>
 
-            <!-- ALERTA CIEGA PARA EL DUEÑO -->
             ${hasPending ? `
               <div class="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 flex items-center gap-3 animate-pulse">
                 <span class="text-2xl">🔔</span>
@@ -183,7 +188,6 @@
               </button>
             </div>
 
-            <!-- BOTÓN DISCRETO PARA EL DUEÑO -->
             <div class="text-center pt-4 border-t border-slate-700 mt-4">
               <button onclick="showOwnerLogin()" class="text-slate-600 hover:text-slate-400 text-xs underline transition">
                 🔒 Acceso Dueño
