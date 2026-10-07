@@ -30,7 +30,7 @@
 
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
-    let petState = {}; // Guardaremos aquí los datos temporales
+    let petState = {};
 
     auth.onAuthStateChanged(async (user) => {
       if (!user) {
@@ -45,7 +45,7 @@
       const petSnap = await db.collection("pets").doc(tagId).get();
       if (petSnap.exists) {
         petState = petSnap.data();
-        if(!petState.events) petState.events = []; // Inicializar array de eventos
+        if(!petState.events) petState.events = [];
         renderDashboard();
       } else {
         document.getElementById('content').innerHTML = "<p class='text-red-500 text-center mt-20'>Perfil no encontrado.</p>";
@@ -86,7 +86,7 @@
               <input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" placeholder="Ej: Diabético" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500">
             </div>
             <div>
-              <label class="block text-gray-700 font-medium mb-1">WhatsApp</label>
+              <label class="block text-gray-700 font-medium mb-1">WhatsApp (Importante: Con código de país, ej: 52123...)</label>
               <input type="text" id="petPhone" value="${petState.ownerPhone || ''}" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-blue-500">
             </div>
             <button onclick="savePublicProfile()" class="w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold shadow-md">💾 Guardar Perfil Público</button>
@@ -100,7 +100,6 @@
           </div>
           <div class="p-6 space-y-5">
             
-            <!-- Agregar Evento -->
             <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
               <h3 class="font-bold text-slate-700 mb-3">➕ Agregar Nuevo Evento (Vacuna, Desparasitación, Cita)</h3>
               <div class="grid grid-cols-2 gap-3">
@@ -119,13 +118,11 @@
               <button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg font-medium hover:bg-emerald-700">Agregar al Historial</button>
             </div>
 
-            <!-- Línea de Tiempo de Eventos -->
             <div>
               <h3 class="font-bold text-slate-700 mb-3">📅 Historial y Próximos Eventos</h3>
               <div id="eventsList" class="space-y-2"></div>
             </div>
 
-            <!-- Recetas y Notas -->
             <div class="pt-4 border-t mt-4">
               <label class="block text-gray-700 font-medium mb-1">💊 Recetas Médicas</label>
               <textarea id="petRx" class="w-full p-3 border rounded-xl focus:ring-2 focus:ring-emerald-500 h-24" placeholder="Medicamentos, dosis...">${petState.rx || ''}</textarea>
@@ -145,7 +142,6 @@
       renderEvents();
     }
 
-    // --- LÓGICA DE EVENTOS ---
     window.addEvent = function() {
       const type = document.getElementById('evType').value;
       const name = document.getElementById('evName').value;
@@ -157,7 +153,6 @@
       if(!petState.events) petState.events = [];
       petState.events.push({ type, name, date, status });
       
-      // Limpiar inputs
       document.getElementById('evName').value = '';
       document.getElementById('evDate').value = '';
       
@@ -175,7 +170,6 @@
         list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos registrados.</p>";
         return;
       }
-      // Ordenar por fecha descendente
       petState.events.sort((a,b) => new Date(b.date) - new Date(a.date));
       
       list.innerHTML = petState.events.map((ev, i) => {
@@ -216,17 +210,21 @@
       reader.readAsDataURL(file);
     };
 
+    // AQUÍ ESTÁ LA CORRECCIÓN: Guarda en pets Y actualiza en tags
     window.savePublicProfile = async function() {
+      const phoneVal = document.getElementById('petPhone').value;
       const data = {
         photoUrl: window.base64Photo || document.getElementById('imgPreview').src,
         name: document.getElementById('petName').value,
         description: document.getElementById('petDesc').value,
         medicalAlerts: document.getElementById('petAlerts').value,
-        ownerPhone: document.getElementById('petPhone').value
+        ownerPhone: phoneVal
       };
       try {
         await db.collection("pets").doc(tagId).update(data);
-        alert("¡Perfil público guardado!");
+        // ¡Sincronizamos el número en la medalla!
+        await db.collection("tags").doc(tagId).update({ phone: phoneVal });
+        alert("¡Perfil público guardado y WhatsApp sincronizado!");
       } catch (e) { alert("Error: " + e.message); }
     }
 
