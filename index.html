@@ -3,57 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PetFind - Panel de Administración</title>
+  <title>PetFind - Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
   <div class="max-w-4xl mx-auto">
-    <div class="flex items-center justify-center mb-8 gap-3">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 14l9-5-9-5-9 5 9 5z" /></svg>
-      <h1 class="text-4xl font-extrabold text-blue-800 tracking-tight">PetFind</h1>
+    <div class="flex flex-col items-center justify-center mb-8 gap-3">
+      <img src="logo.png" alt="PetFind" class="h-24 mb-2">
     </div>
     
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800">💳 Configuración de Cobro y Soporte</h2>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800">💳 Configuración Global</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Nombre de la Billetera</label>
-          <input type="text" id="walletName" placeholder="Ej: Yape" class="w-full p-3 border rounded-xl">
-        </div>
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Número de Cuenta</label>
-          <input type="text" id="walletNumber" placeholder="Ej: 51987654321" class="w-full p-3 border rounded-xl">
-        </div>
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Correo de Soporte</label>
-          <input type="email" id="supportEmail" placeholder="soporte@petfind.com" class="w-full p-3 border rounded-xl">
-        </div>
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">WhatsApp de PetFind (Ventas)</label>
-          <input type="text" id="petfindWhatsapp" placeholder="Ej: 51987654321" class="w-full p-3 border rounded-xl">
-        </div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Billetera (Yape, Plin, etc.)</label><input type="text" id="walletName" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Número de Cuenta</label><input type="text" id="walletNumber" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Precio Suscripción (Ej: 15.00)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">WhatsApp de PetFind</label><input type="text" id="petfindWhatsapp" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Msg Ventas WhatsApp</label><input type="text" id="waSalesMsg" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Msg Soporte WhatsApp</label><input type="text" id="waSupportMsg" class="w-full p-3 border rounded-xl"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Msg Rescate (QR)</label><input type="text" id="rescueMsg" class="w-full p-3 border rounded-xl"></div>
       </div>
-      <button onclick="saveSettings()" class="mt-4 w-full bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-indigo-700">Guardar Configuración</button>
+      <div class="flex gap-2 mt-4">
+        <button onclick="saveSettings()" class="flex-1 bg-indigo-600 text-white px-6 py-3 rounded-xl font-bold">Guardar Config</button>
+        <button onclick="updateAllMessages()" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-xl font-bold">Aplicar Msg a Todas</button>
+      </div>
     </div>
 
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
       <div class="space-y-5">
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Tipo de Medalla</label>
-          <select id="planType" class="w-full p-3 border rounded-xl"><option value="basic">Básico</option><option value="premium">Premium</option></select>
-        </div>
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Nombre interno (Opcional)</label>
-          <input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl">
-        </div>
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Mensaje predeterminado</label>
-          <textarea id="message" class="w-full p-3 border rounded-xl h-24">¡Hola! Encontré a tu mascota en la calle. Te escribo desde PetFind para que puedas recuperarla. Te comparto mi ubicación:</textarea>
-        </div>
-        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold">Generar Medalla y QR</button>
+        <div><label class="block text-gray-700 mb-2 font-medium">Tipo</label><select id="planType" class="w-full p-3 border rounded-xl"><option value="basic">Básico</option><option value="premium">Premium</option></select></div>
+        <div><label class="block text-gray-700 mb-2 font-medium">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1" class="w-full p-3 border rounded-xl"></div>
+        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold">Generar Medalla</button>
       </div>
     </div>
 
@@ -64,7 +48,14 @@
   </div>
 
   <div id="voucherModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-5 z-50" onclick="closeVoucher()">
-    <div class="bg-white p-4 rounded-2xl max-w-md w-full"><h3 class="text-xl font-bold mb-4 text-center">Recibo de Pago</h3><img id="voucherImg" src="" class="w-full rounded-xl"></div>
+    <div class="bg-white p-4 rounded-2xl max-w-md w-full text-center">
+      <h3 class="text-xl font-bold mb-4">Recibo de Pago</h3>
+      <img id="voucherImg" src="" class="w-full rounded-xl mb-4">
+      <div class="flex gap-2">
+        <button onclick="rejectVoucher()" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold">❌ Rechazar</button>
+        <button onclick="closeVoucher()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cerrar</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -75,14 +66,20 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    let currentVoucherTagId = null;
 
     async function loadSettings() {
       const snap = await db.collection("settings").doc("payment").get();
       if(snap.exists) {
-        document.getElementById('walletName').value = snap.data().walletName || "";
-        document.getElementById('walletNumber').value = snap.data().walletNumber || "";
-        document.getElementById('supportEmail').value = snap.data().supportEmail || "";
-        document.getElementById('petfindWhatsapp').value = snap.data().petfindWhatsapp || "";
+        const s = snap.data();
+        document.getElementById('walletName').value = s.walletName || "";
+        document.getElementById('walletNumber').value = s.walletNumber || "";
+        document.getElementById('supportEmail').value = s.supportEmail || "";
+        document.getElementById('petfindWhatsapp').value = s.petfindWhatsapp || "";
+        document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola PetFind, me gustaría información sobre las medallas.";
+        document.getElementById('waSupportMsg').value = s.waSupportMsg || "Hola PetFind, tuve un problema con mi recibo de pago.";
+        document.getElementById('rescueMsg').value = s.rescueMsg || "¡Hola! Encontré a tu mascota. Te escribo desde PetFind para que puedas recuperarla. Te comparto mi ubicación:";
+        document.getElementById('subPrice').value = s.subPrice || "15.00";
       }
     }
     window.saveSettings = async function() {
@@ -90,18 +87,34 @@
         walletName: document.getElementById('walletName').value,
         walletNumber: document.getElementById('walletNumber').value,
         supportEmail: document.getElementById('supportEmail').value,
-        petfindWhatsapp: document.getElementById('petfindWhatsapp').value
+        petfindWhatsapp: document.getElementById('petfindWhatsapp').value,
+        waSalesMsg: document.getElementById('waSalesMsg').value,
+        waSupportMsg: document.getElementById('waSupportMsg').value,
+        rescueMsg: document.getElementById('rescueMsg').value,
+        subPrice: document.getElementById('subPrice').value
       });
       alert("¡Configuración guardada!");
     }
-    window.showVoucher = function(imgUrl) { document.getElementById('voucherImg').src = imgUrl; document.getElementById('voucherModal').classList.remove('hidden'); document.getElementById('voucherModal').classList.add('flex'); }
+    window.updateAllMessages = async function() {
+      const msg = document.getElementById('rescueMsg').value;
+      const snap = await db.collection("tags").get();
+      snap.forEach(async (doc) => { await doc.ref.update({ message: msg }); });
+      alert("Mensaje actualizado en todas las medallas.");
+    }
+
+    window.showVoucher = function(tagId, imgUrl) { currentVoucherTagId = tagId; document.getElementById('voucherImg').src = imgUrl; document.getElementById('voucherModal').classList.remove('hidden'); document.getElementById('voucherModal').classList.add('flex'); }
     window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
+    window.rejectVoucher = async function() {
+      await db.collection("tags").doc(currentVoucherTagId).update({ paymentStatus: "rejected" });
+      alert("Recibo rechazado. El cliente fue notificado.");
+      closeVoucher(); loadTags();
+    }
 
     function createTag() {
-      const petName = document.getElementById('petName').value, message = document.getElementById('message').value, planType = document.getElementById('planType').value;
+      const petName = document.getElementById('petName').value, planType = document.getElementById('planType').value;
+      const message = document.getElementById('rescueMsg').value;
       db.collection("tags").add({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
       .then((docRef) => {
-        alert("¡Medalla creada! Generando QR...");
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
         window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`, '_blank');
         document.getElementById('petName').value = ""; loadTags();
@@ -119,34 +132,28 @@
           const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://petfind-omega.vercel.app/${page}?id=${doc.id}`;
           const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
-          let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", voucherButton = "";
+          let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", voucherButton = "", approveBtn = "";
+          
           if(tag.plan === 'premium' && tag.claimed) {
-            if(tag.voucherUrl) voucherButton = `<button onclick="showVoucher('${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm">🧾 Ver Recibo</button>`;
+            if(tag.voucherUrl && tag.paymentStatus === 'pending') {
+              voucherButton = `<button onclick="showVoucher('${doc.id}', '${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm">🧾 Ver Recibo</button>`;
+              approveBtn = `<button onclick="approveVoucher('${doc.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">✅ Aprobar Pago</button>`;
+            }
             if(tag.subscriptionExpires) {
               const exp = new Date(tag.subscriptionExpires);
               if(exp > new Date()) { subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700"; }
               else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
             } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
-            subButtons = `
-              <div class="flex gap-1 col-span-2">
-                <button onclick="adjustDays('${doc.id}', -30)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs font-medium">-30d</button>
-                <button onclick="adjustDays('${doc.id}', -1)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs font-medium">-1d</button>
-                <button onclick="adjustDays('${doc.id}', 1)" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-xs font-medium">+1d</button>
-                <button onclick="adjustDays('${doc.id}', 30)" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg text-xs font-medium">+30d</button>
-              </div>`;
+            subButtons = `<div class="flex gap-1 col-span-2"><button onclick="adjustDays('${doc.id}', -30)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-xs">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg text-xs">+30d</button></div>`;
           }
           list.innerHTML += `
             <div class="flex flex-col p-4 bg-gray-50 rounded-xl border">
-              <div class="flex justify-between items-center mb-2">
-                <div class="flex items-center gap-2"><p class="font-bold text-gray-800">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span></div>
-                ${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}
-              </div>
+              <div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><p class="font-bold text-gray-800">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span></div>${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}</div>
               <p class="text-sm text-gray-500">📞 ${tag.phone || 'Sin asignar'}</p>
               <div class="my-2"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span></div>
               <div class="grid grid-cols-2 gap-2 mt-3">
                 <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">Ver QR</button>
-                ${voucherButton}
-                ${subButtons}
+                ${voucherButton} ${approveBtn} ${subButtons}
                 ${tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm">Asignar WhatsApp</button>` : ''}
                 <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">🗑️ Eliminar</button>
               </div>
@@ -155,20 +162,22 @@
       });
     }
 
-    window.adjustDays = async function(tagId, days) {
-      const ref = db.collection("tags").doc(tagId);
-      const snap = await ref.get();
-      let current = snap.data().subscriptionExpires ? new Date(snap.data().subscriptionExpires) : new Date();
-      if(current < new Date()) current = new Date(); // Si está vencido, empieza desde hoy
-      current.setDate(current.getDate() + days);
-      await ref.update({ subscriptionExpires: current.toISOString() });
-      loadTags();
+    window.approveVoucher = async function(tagId) {
+      let d = new Date(); d.setDate(d.getDate() + 30);
+      await db.collection("tags").doc(tagId).update({ subscriptionExpires: d.toISOString(), voucherUrl: "", paymentStatus: "approved" });
+      alert("¡Pago aprobado y 30 días activados!"); loadTags();
     }
-    window.editPhone = async function(tagId, p) { const np = prompt("WhatsApp (Ej: 51987654321):", p); if (np !== null) { await db.collection("tags").doc(tagId).update({ phone: np }); loadTags(); } }
+    window.adjustDays = async function(tagId, days) {
+      const ref = db.collection("tags").doc(tagId); const snap = await ref.get();
+      let current = snap.data().subscriptionExpires ? new Date(snap.data().subscriptionExpires) : new Date();
+      if(current < new Date()) current = new Date();
+      current.setDate(current.getDate() + days);
+      await ref.update({ subscriptionExpires: current.toISOString() }); loadTags();
+    }
+    window.editPhone = async function(tagId, p) { const np = prompt("WhatsApp:", p); if (np !== null) { await db.collection("tags").doc(tagId).update({ phone: np }); loadTags(); } }
     window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); loadTags(); } }
 
-    loadSettings();
-    loadTags();
+    loadSettings(); loadTags();
   </script>
 </body>
 </html>
