@@ -17,47 +17,34 @@
       </svg>
       <h1 class="text-4xl font-extrabold text-blue-800 tracking-tight">PetFind</h1>
     </div>
-    <p class="text-center text-gray-600 mb-10 text-lg">Panel de Super Admin - Generación de Medallas</p>
+    <p class="text-center text-gray-600 mb-10 text-lg">Panel de Super Admin - Gestión y Suscripciones</p>
     
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
         <span>🏷️</span> Generar Nueva Medalla (Inventario)
       </h2>
-      
       <div class="space-y-5">
         <div>
           <label class="block text-gray-700 mb-2 font-medium">Tipo de Medalla (Plan)</label>
-          <select id="planType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+          <select id="planType" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
             <option value="basic">Básico (Directo a WhatsApp)</option>
             <option value="premium">Premium (Perfil Web Completo)</option>
           </select>
         </div>
-
         <div>
-          <label class="block text-gray-700 mb-2 font-medium">Nombre interno de la medalla (Opcional)</label>
-          <input type="text" id="petName" placeholder="Ej: Lote 1 - Medalla 05" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+          <label class="block text-gray-700 mb-2 font-medium">Nombre interno (Opcional)</label>
+          <input type="text" id="petName" placeholder="Ej: Lote 1 - Medalla 05" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500">
         </div>
-
-        <div>
-          <label class="block text-gray-700 mb-2 font-medium">Número de WhatsApp del dueño (Dejar vacío para asignar después)</label>
-          <input type="text" id="phone" placeholder="Ej: 521234567890" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-        </div>
-
         <div>
           <label class="block text-gray-700 mb-2 font-medium">Mensaje predeterminado</label>
-          <textarea id="message" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:outline-none transition h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación para que puedas recuperarla:</textarea>
+          <textarea id="message" class="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 h-24">¡Hola! Encontré a tu mascota. Te comparto mi ubicación para que puedas recuperarla:</textarea>
         </div>
-
-        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-md transition transform hover:scale-[1.02]">
-          Generar Medalla y Código QR
-        </button>
+        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl hover:bg-blue-700 font-bold text-lg shadow-md transition">Generar Medalla y QR</button>
       </div>
     </div>
 
     <div class="bg-white p-8 rounded-2xl shadow-xl border border-gray-100">
-      <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2">
-        <span>📋</span> Inventario de Medallas
-      </h2>
+      <h2 class="text-2xl font-bold mb-6 text-gray-800 flex items-center gap-2"><span>📋</span> Inventario de Medallas</h2>
       <div id="tagsList" class="space-y-4"></div>
     </div>
   </div>
@@ -77,41 +64,31 @@
 
     function createTag() {
       const petName = document.getElementById('petName').value;
-      const phone = document.getElementById('phone').value;
       const message = document.getElementById('message').value;
       const planType = document.getElementById('planType').value;
-
       db.collection("tags").add({
         petName: petName,
-        phone: phone, // Puede quedar vacío
+        phone: "",
         message: message,
         plan: planType,
         claimed: false,
         createdAt: new Date()
       }).then((docRef) => {
-        alert("¡Medalla creada con éxito! Generando QR...");
-        
+        alert("¡Medalla creada! Generando QR...");
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`;
         window.open(qrUrl, '_blank');
-        
         document.getElementById('petName').value = "";
-        document.getElementById('phone').value = "";
         loadTags();
       }).catch((error) => alert("Error: " + error));
     }
 
     function loadTags() {
       const list = document.getElementById('tagsList');
-      list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando medallas...</p>";
-      
+      list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando...</p>";
       db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
         list.innerHTML = "";
-        if (querySnapshot.empty) {
-          list.innerHTML = "<p class='text-gray-400 text-center py-4'>No hay medallas creadas todavía.</p>";
-          return;
-        }
-        
+        if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center py-4'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
           const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
@@ -119,6 +96,32 @@
           const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
           const phoneText = tag.phone ? tag.phone : '❌ Sin asignar';
           
+          let subStatus = "N/A";
+          let subColor = "bg-gray-100 text-gray-500";
+          let subButton = "";
+          let voucherButton = "";
+
+          if(tag.plan === 'premium' && tag.claimed) {
+            if(tag.voucherUrl) {
+              voucherButton = `<button onclick="window.open('${tag.voucherUrl}', '_blank')" class="w-full bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-orange-200">🧾 Ver Recibo</button>`;
+            }
+            
+            if(tag.subscriptionExpires) {
+              const exp = new Date(tag.subscriptionExpires);
+              if(exp > new Date()) {
+                subStatus = `Activo hasta: ${exp.toLocaleDateString()}`;
+                subColor = "bg-green-100 text-green-700";
+              } else {
+                subStatus = "Vencido";
+                subColor = "bg-red-100 text-red-700";
+              }
+            } else {
+              subStatus = "Pendiente de Pago";
+              subColor = "bg-yellow-100 text-yellow-700";
+            }
+            subButton = `<button onclick="activateSub('${doc.id}')" class="w-full bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-200">✅ Activar 30 días</button>`;
+          }
+
           const html = `
             <div class="flex flex-col p-4 bg-gray-50 rounded-xl border border-gray-100">
               <div class="flex justify-between items-center mb-2">
@@ -126,21 +129,21 @@
                   <p class="font-bold text-gray-800 text-lg">${tag.petName || 'Sin nombre'}</p>
                   <span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span>
                 </div>
-                ${tag.claimed ? '<span class="text-xs bg-green-200 text-green-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}
+                ${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}
               </div>
               <p class="text-sm text-gray-500 mb-1">📞 WhatsApp: ${phoneText}</p>
               <p class="text-xs text-gray-400 mt-1 break-all">ID: ${doc.id}</p>
               
-              <div class="flex gap-2 mt-3">
-                <button onclick="window.open('${qrUrl}', '_blank')" class="flex-1 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200 transition">
-                  Ver QR
-                </button>
-                <button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="flex-1 bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-200 transition">
-                  ✏️ Asignar WhatsApp
-                </button>
-                <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200 transition">
-                  🗑️
-                </button>
+              <div class="mt-2 mb-3">
+                 <span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span>
+              </div>
+
+              <div class="grid grid-cols-2 gap-2 mt-3">
+                <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-200">Ver QR</button>
+                ${voucherButton}
+                ${subButton}
+                ${tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-200">Asignar WhatsApp</button>` : ''}
+                <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-200">🗑️ Eliminar</button>
               </div>
             </div>
           `;
@@ -149,30 +152,34 @@
       });
     }
 
-    // Función para que el admin asigne o cambie el WhatsApp
+    window.activateSub = async function(tagId) {
+      let d = new Date();
+      d.setDate(d.getDate() + 30); // Sumar 30 días
+      try {
+        await db.collection("tags").doc(tagId).update({ 
+          subscriptionExpires: d.toISOString(),
+          voucherUrl: "" // Limpiar el recibo una vez activado
+        });
+        alert("¡Suscripción activada por 30 días!");
+        loadTags();
+      } catch(e) { alert("Error: " + e.message); }
+    }
+
     window.editPhone = async function(tagId, currentPhone) {
-      const newPhone = prompt("Ingresa el número de WhatsApp del dueño (con código de país, sin +):", currentPhone);
+      const newPhone = prompt("Ingresa el WhatsApp (Ej: 51987654321):", currentPhone);
       if (newPhone !== null) {
-        try {
-          await db.collection("tags").doc(tagId).update({ phone: newPhone });
-          alert("¡WhatsApp actualizado! La medalla ahora apunta a este número.");
-          loadTags();
-        } catch (e) {
-          alert("Error: " + e.message);
-        }
+        await db.collection("tags").doc(tagId).update({ phone: newPhone });
+        alert("WhatsApp actualizado.");
+        loadTags();
       }
     }
 
     window.deleteTag = async function(tagId) {
-      if (confirm("¿Estás seguro de que quieres eliminar esta medalla?")) {
-        try {
-          await db.collection("tags").doc(tagId).delete();
-          await db.collection("pets").doc(tagId).delete().catch(() => {});
-          alert("Medalla eliminada con éxito.");
-          loadTags();
-        } catch (error) {
-          alert("Error al eliminar la medalla: " + error.message);
-        }
+      if (confirm("¿Eliminar esta medalla?")) {
+        await db.collection("tags").doc(tagId).delete();
+        await db.collection("pets").doc(tagId).delete().catch(() => {});
+        alert("Eliminada.");
+        loadTags();
       }
     }
 
