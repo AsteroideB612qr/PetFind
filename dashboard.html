@@ -36,51 +36,60 @@
         petState = petSnap.data(); tagState = tagSnap.data();
         if(settingsSnap.exists) settingsState = settingsSnap.data();
         if(!petState.events) petState.events = [];
-        updatePWA(petState.name || "PetFind", petState.photoUrl); // PWA Icon
+        updatePWA(petState.name || "PetFind", petState.photoUrl);
         renderDashboard();
       }
     });
 
     function updatePWA(name, iconUrl) {
-      const manifest = { name: name, short_name: name, display: "standalone", start_url: window.location.href, icons: [{ src: iconUrl || "https://via.placeholder.com/192", sizes: "192x192", type: "image/jpeg" }] };
-      const stringManifest = JSON.stringify(manifest);
-      const blob = new Blob([stringManifest], {type: 'application/json'});
-      const manifestURL = URL.createObjectURL(blob);
+      const manifest = { name: name, short_name: name, display: "standalone", start_url: window.location.href, icons: [{ src: iconUrl || "logo.png", sizes: "192x192", type: "image/jpeg" }] };
+      const stringManifest = JSON.stringify(manifest); const blob = new Blob([stringManifest], {type: 'application/json'}); const manifestURL = URL.createObjectURL(blob);
       let mLink = document.querySelector('link[rel="manifest"]'); if (!mLink) { mLink = document.createElement('link'); mLink.rel = 'manifest'; document.head.appendChild(mLink); } mLink.href = manifestURL;
-      let aLink = document.querySelector('link[rel="apple-touch-icon"]'); if (!aLink) { aLink = document.createElement('link'); aLink.rel = 'apple-touch-icon'; document.head.appendChild(aLink); } aLink.href = iconUrl;
+      let aLink = document.querySelector('link[rel="apple-touch-icon"]'); if (!aLink) { aLink = document.createElement('link'); aLink.rel = 'apple-touch-icon'; document.head.appendChild(aLink); } aLink.href = iconUrl || "logo.png";
     }
 
     function renderDashboard() {
       const expDate = tagState.subscriptionExpires ? new Date(tagState.subscriptionExpires) : null;
       const isActive = expDate && expDate > new Date();
-      const subText = isActive ? `Activo hasta ${expDate.toLocaleDateString()}` : "Pendiente / Vencido";
-      const subColor = isActive ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700";
+      const payStatus = tagState.paymentStatus || 'none';
       const currentCountry = (petState.ownerPhone || "").substring(0, 2);
       const currentPhone = (petState.ownerPhone || "").substring(2);
-      const disabledAttr = isActive ? '' : 'disabled'; // Bloquear edición si no pagó
+      const disabledAttr = isActive ? '' : 'disabled';
+
+      let membershipHTML = '';
+      if (isActive) {
+        membershipHTML = `<p class="text-green-600 font-bold text-center">¡Tu mascota está protegida! Vence el ${expDate.toLocaleDateString()}</p>`;
+      } else if (payStatus === 'approved') {
+        membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu cuenta en breve.</p>`;
+      } else if (payStatus === 'rejected') {
+        membershipHTML = `
+          <p class="text-red-600 font-bold text-center">❌ Hubo un problema con tu recibo. Contacta a soporte.</p>
+          <a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind, tuve un problema con mi recibo.')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mt-3">💬 Contactar Soporte</a>
+        `;
+      } else {
+        membershipHTML = `
+          <div class="text-center space-y-3">
+            <p class="text-gray-600">Realiza el pago de ${settingsState.subPrice || '15.00'} a la siguiente cuenta:</p>
+            <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
+              <div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div>
+              <button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Número copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button>
+            </div>
+            <input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)">
+            <button onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium">🧾 Adjuntar Recibo</button>
+            <button onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold">Solicitar Activación</button>
+          </div>`;
+      }
 
       document.getElementById('content').innerHTML = `
-        <div class="flex items-center justify-between mb-8 pt-8">
+        <div class="flex flex-col items-center mb-8 pt-8">
+          <img src="logo.png" alt="PetFind" class="h-20 mb-2">
           <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>
-          <button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium">Cerrar Sesión</button>
+          <button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">Cerrar Sesión</button>
         </div>
 
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
-          <div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white flex justify-between"><h2 class="text-xl font-bold">👑 Membresía</h2><span class="text-sm bg-white/20 px-3 py-1 rounded-full">${subText}</span></div>
-          <div class="p-6 space-y-4">
-            ${!isActive ? `
-              <div class="text-center space-y-3">
-                <p class="text-gray-600">Realiza el pago a la siguiente cuenta:</p>
-                <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
-                  <div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div>
-                  <button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Número copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button>
-                </div>
-                <input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)">
-                <button onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium">🧾 Adjuntar Recibo</button>
-                <button onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold">Solicitar Activación</button>
-              </div>
-            ` : `<p class="text-green-600 font-bold text-center">¡Tu mascota está protegida!</p>`}
-          </div>
+          <div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white"><h2 class="text-xl font-bold">👑 Membresía PetFind</h2></div>
+          <div class="p-6 space-y-4">${membershipHTML}</div>
         </div>
 
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
@@ -91,8 +100,8 @@
               <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
               <button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button>
             </div>
-            <div><label class="block font-medium mb-1">Nombre</label><input type="text" id="petName" value="${petState.name || ''}" placeholder="Nombre de tu mascota" class="w-full p-3 border rounded-xl" ${disabledAttr}></div>
-            <div><label class="block font-medium mb-1">Descripción</label><textarea id="petDesc" class="w-full p-3 border rounded-xl h-20" placeholder="Ej: Muy juguetón, responde al nombre de..." ${disabledAttr}>${petState.description || ''}</textarea></div>
+            <div><label class="block font-medium mb-1">Nombre</label><input type="text" id="petName" value="${petState.name || ''}" placeholder="Ej: Max" class="w-full p-3 border rounded-xl" ${disabledAttr}></div>
+            <div><label class="block font-medium mb-1">Descripción</label><textarea id="petDesc" class="w-full p-3 border rounded-xl h-20" placeholder="Ej: Muy juguetón..." ${disabledAttr}>${petState.description || ''}</textarea></div>
             <div><label class="block font-medium mb-1">🚨 Alertas Médicas</label><input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" placeholder="Ej: Alérgico al pollo" class="w-full p-3 border rounded-xl" ${disabledAttr}></div>
             <div><label class="block font-medium mb-1">WhatsApp</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl" ${disabledAttr}><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" placeholder="Número" class="w-2/3 p-3 border rounded-xl" ${disabledAttr}></div></div>
             <button onclick="savePublicProfile()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Perfil</button>
@@ -118,6 +127,7 @@
             <button onclick="saveMedicalProfile()" class="w-full bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Expediente</button>
           </div>
         </div>
+        <div class="text-center pb-10"><a href="scan.html?id=${tagId}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
       `;
       renderEvents(isActive);
     }
@@ -126,8 +136,15 @@
     
     window.editEvent = function(i) {
       const ev = petState.events[i];
-      const newStatus = prompt(`Cambiar estado para "${ev.name}" (Pendiente/Aplicada):`, ev.status);
-      if(newStatus) petState.events[i].status = newStatus;
+      const type = prompt("Editar Tipo (Vacuna, Desparasitación, Cita Médica):", ev.type);
+      if (type === null) return;
+      const name = prompt("Editar Nombre:", ev.name);
+      if (name === null) return;
+      const date = prompt("Editar Fecha (AAAA-MM-DD):", ev.date);
+      if (date === null) return;
+      const status = prompt("Editar Estado (Pendiente/Aplicada):", ev.status);
+      if (status === null) return;
+      petState.events[i] = { type, name, date, status };
       renderEvents(true);
     }
 
@@ -135,13 +152,13 @@
       const list = document.getElementById('eventsList');
       if(!petState.events.length) return list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos.</p>";
       petState.events.sort((a,b) => new Date(b.date) - new Date(a.date));
-      list.innerHTML = petState.events.map((ev, i) => `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - ${ev.status}</p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button>` : ''}<button onclick="petState.events.splice(${i},1); renderEvents(${isActive});" class="text-red-500 ${!isActive ? 'hidden' : ''}">🗑️</button></div></div>`).join('');
+      list.innerHTML = petState.events.map((ev, i) => `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - ${ev.status}</p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="petState.events.splice(${i},1); renderEvents(true);" class="text-red-500">🗑️</button>` : ''}</div></div>`).join('');
     }
 
     window.handleFileSelect = function(e) { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>300){h*=300/w; w=300;}}else{if(h>300){w*=300/h; h=300;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); document.getElementById('imgPreview').src=c.toDataURL('image/jpeg',0.7); window.base64Photo=c.toDataURL('image/jpeg',0.7);}; img.src=ev.target.result;}; r.readAsDataURL(f); }
     window.handleVoucherSelect = function(e) { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); window.base64Voucher=c.toDataURL('image/jpeg',0.6); alert("Recibo cargado. Presiona Solicitar.");}; img.src=ev.target.result;}; r.readAsDataURL(f); }
 
-    window.submitVoucher = async function() { if(!window.base64Voucher) return alert("Adjunta la imagen primero."); await db.collection("tags").doc(tagId).update({ voucherUrl: window.base64Voucher }); alert("¡Recibo enviado!"); window.location.reload(); }
+    window.submitVoucher = async function() { if(!window.base64Voucher) return alert("Adjunta la imagen primero."); await db.collection("tags").doc(tagId).update({ voucherUrl: window.base64Voucher, paymentStatus: "pending" }); alert("¡Recibo enviado!"); window.location.reload(); }
     window.savePublicProfile = async function() { const p=document.getElementById('petCountry').value+document.getElementById('petPhone').value; await db.collection("pets").doc(tagId).update({ photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p }); await db.collection("tags").doc(tagId).update({ phone: p }); alert("¡Guardado!"); }
     window.saveMedicalProfile = async function() { await db.collection("pets").doc(tagId).update({ events: petState.events, rx: document.getElementById('petRx').value, notes: document.getElementById('petNotes').value }); alert("¡Expediente guardado!"); }
   </script>
