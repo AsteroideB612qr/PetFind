@@ -24,6 +24,9 @@
       appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
     };
 
+    // ¡PON AQUÍ TU NÚMERO DE WHATSAPP! (Con código de país, sin +)
+    const ADMIN_PHONE = "51984908819"; 
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
@@ -41,6 +44,15 @@
         }
 
         const tag = docSnap.data();
+        
+        // Si la medalla no tiene dueño, mandar mensaje al Super Admin
+        if (!tag.phone) {
+          const msg = `¡Hola PetFind! Quiero activar mi medalla. Su ID es: ${tagId}`;
+          window.location.href = `https://wa.me/${ADMIN_PHONE}?text=${encodeURIComponent(msg)}`;
+          return;
+        }
+
+        // Si sí tiene dueño, proceder con ubicación normal
         document.getElementById('status').innerText = "Obteniendo ubicación...";
 
         if (navigator.geolocation) {
@@ -48,14 +60,12 @@
             (position) => {
               const mapsLink = `https://www.google.com/maps?q=${position.coords.latitude},${position.coords.longitude}`;
               const fullMessage = `${tag.message} Mi ubicación actual es: ${mapsLink}`;
-              // Redirige a WhatsApp
               window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(fullMessage)}`;
             },
             (error) => {
-              // Si el usuario rechaza la ubicación, envía solo el mensaje
               window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(tag.message)}`;
             },
-            { timeout: 5000 } // Espera máximo 5 segundos por la ubicación
+            { timeout: 5000 }
           );
         } else {
           window.location.href = `https://wa.me/${tag.phone}?text=${encodeURIComponent(tag.message)}`;
