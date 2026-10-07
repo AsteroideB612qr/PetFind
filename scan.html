@@ -25,7 +25,7 @@
     const auth = firebase.auth();
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
-    let globalSettings = { supportEmail: "soporte@petfind.com", petfindWhatsapp: "" };
+    let globalSettings = {};
 
     async function init() {
       const settingsSnap = await db.collection("settings").doc("payment").get();
@@ -44,7 +44,7 @@
           const petSnap = await db.collection("pets").doc(tagId).get();
           if (petSnap.exists) {
             const petData = petSnap.data();
-            updatePWA(petData.name || "PetFind", petData.photoUrl); // PWA Icon
+            updatePWA(petData.name || "PetFind", petData.photoUrl);
             renderPublicProfile(petData, petData.ownerPhone || tag.phone, tag.message);
           } else { renderPublicProfile({name: "Mascota"}, tag.phone, tag.message); }
         }
@@ -52,18 +52,17 @@
     }
 
     function updatePWA(name, iconUrl) {
-      const manifest = { name: name, short_name: name, display: "standalone", start_url: window.location.href, icons: [{ src: iconUrl || "https://via.placeholder.com/192", sizes: "192x192", type: "image/jpeg" }] };
-      const stringManifest = JSON.stringify(manifest);
-      const blob = new Blob([stringManifest], {type: 'application/json'});
-      const manifestURL = URL.createObjectURL(blob);
+      const manifest = { name: name, short_name: name, display: "standalone", start_url: window.location.href, icons: [{ src: iconUrl || "logo.png", sizes: "192x192", type: "image/jpeg" }] };
+      const stringManifest = JSON.stringify(manifest); const blob = new Blob([stringManifest], {type: 'application/json'}); const manifestURL = URL.createObjectURL(blob);
       let mLink = document.querySelector('link[rel="manifest"]'); if (!mLink) { mLink = document.createElement('link'); mLink.rel = 'manifest'; document.head.appendChild(mLink); } mLink.href = manifestURL;
-      let aLink = document.querySelector('link[rel="apple-touch-icon"]'); if (!aLink) { aLink = document.createElement('link'); aLink.rel = 'apple-touch-icon'; document.head.appendChild(aLink); } aLink.href = iconUrl;
+      let aLink = document.querySelector('link[rel="apple-touch-icon"]'); if (!aLink) { aLink = document.createElement('link'); aLink.rel = 'apple-touch-icon'; document.head.appendChild(aLink); } aLink.href = iconUrl || "logo.png";
     }
 
     function renderClaimForm(tagId, message) {
       document.getElementById('content').innerHTML = `
+        <div class="flex justify-center mb-6"><img src="logo.png" alt="PetFind" class="h-20"></div>
         <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
-          <div class="text-center mb-8"><div class="w-20 h-20 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">👑</div><h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1></div>
+          <div class="text-center mb-8"><h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1></div>
           <div class="space-y-4">
             <input type="email" id="regEmail" placeholder="Tu correo" class="w-full p-4 bg-slate-700 rounded-xl">
             <input type="password" id="regPass" placeholder="Contraseña" class="w-full p-4 bg-slate-700 rounded-xl">
@@ -94,6 +93,7 @@
     function renderPublicProfile(pet, phone, message) {
       let hasPending = pet.events && pet.events.length > 0 && pet.events.some(ev => ev.status === 'Pendiente');
       document.getElementById('content').innerHTML = `
+        <div class="flex justify-center mb-4"><img src="logo.png" alt="PetFind" class="h-16"></div>
         <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
           <div class="relative h-64 bg-slate-700">
             ${pet.photoUrl ? `<img src="${pet.photoUrl}" class="w-full h-full object-cover">` : `<div class="w-full h-full flex items-center justify-center text-6xl">🐾</div>`}
@@ -107,7 +107,7 @@
             <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 px-6 py-4 rounded-xl font-bold text-lg">📍 Enviar mi Ubicación</button>
             <button onclick="sendPlainMessage('${phone}', '${message}')" class="w-full bg-slate-700 px-6 py-3 rounded-xl">💬 Solo enviar un Mensaje</button>
             
-            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=Hola%20PetFind,%20me%20gustaría%20información%20sobre%20las%20medallas." target="_blank" class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-medium text-center block">🛍️ Comprar esta Medalla</a>
+            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=${encodeURIComponent(globalSettings.waSalesMsg || 'Hola PetFind, quiero info.')}" target="_blank" class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-medium text-center block">🛍️ Comprar esta Medalla</a>
             
             <div class="text-center pt-4 border-t border-slate-700"><button onclick="showOwnerLogin()" class="text-slate-600 text-xs underline">🔒 Acceso Dueño</button></div>
           </div>
@@ -116,22 +116,22 @@
 
     function renderDisabledProfile() {
       document.getElementById('content').innerHTML = `
+        <div class="flex justify-center mb-4"><img src="logo.png" alt="PetFind" class="h-16"></div>
         <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-red-800 text-center">
           <div class="w-20 h-20 bg-red-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">⏳</div>
           <h1 class="text-3xl font-extrabold text-white mb-2">Servicio Inhabilitado</h1>
           <p class="text-slate-400 mt-2 mb-6">El plan premium ha expirado. Contacta al soporte o ingresa al panel para renovar.</p>
           <div class="bg-slate-700 p-4 rounded-xl text-left mb-4 space-y-2">
             <p class="text-sm text-slate-300">📧 ${globalSettings.supportEmail || 'soporte@petfind.com'}</p>
-            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=Hola%20PetFind,%20mi%20medalla%20está%20inhabilitada%20y%20quiero%20renovar." target="_blank" class="text-sm text-green-400 underline">💬 WhatsApp de PetFind</a>
+            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=${encodeURIComponent(globalSettings.waSalesMsg || 'Hola PetFind, quiero renovar.')}" target="_blank" class="text-sm text-green-400 underline block">💬 WhatsApp de PetFind</a>
           </div>
-          <div class="text-center pt-4 border-t border-slate-700 mt-4">
-            <button onclick="showOwnerLogin()" class="text-slate-400 hover:text-white text-sm underline transition">🔒 Acceso Dueño (Pagar)</button>
-          </div>
+          <div class="text-center pt-4 border-t border-slate-700 mt-4"><button onclick="showOwnerLogin()" class="text-slate-400 hover:text-white text-sm underline transition">🔒 Acceso Dueño (Pagar)</button></div>
         </div>`;
     }
 
     window.showOwnerLogin = function() {
       document.getElementById('content').innerHTML = `
+        <div class="flex justify-center mb-6"><img src="logo.png" alt="PetFind" class="h-20"></div>
         <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
           <h2 class="text-2xl font-bold text-white mb-4">Panel del Dueño</h2>
           <div class="space-y-4">
