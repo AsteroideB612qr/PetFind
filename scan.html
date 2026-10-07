@@ -16,20 +16,21 @@
 
   <script>
     const firebaseConfig = {
-      apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0",
-      authDomain: "petfind-50fb3.firebaseapp.com",
-      projectId: "petfind-50fb3",
-      storageBucket: "petfind-50fb3.firebasestorage.app",
-      messagingSenderId: "1077014067959",
-      appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
+      apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0", authDomain: "petfind-50fb3.firebaseapp.com",
+      projectId: "petfind-50fb3", storageBucket: "petfind-50fb3.firebasestorage.app",
+      messagingSenderId: "1077014067959", appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
     const urlParams = new URLSearchParams(window.location.search);
     const tagId = urlParams.get('id');
+    let globalSettings = { supportEmail: "soporte@petfind.com", petfindWhatsapp: "" };
 
     async function init() {
+      const settingsSnap = await db.collection("settings").doc("payment").get();
+      if(settingsSnap.exists) globalSettings = settingsSnap.data();
+
       if (!tagId) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>QR inválido.</p>";
       try {
         const docSnap = await db.collection("tags").doc(tagId).get();
@@ -43,26 +44,31 @@
           const petSnap = await db.collection("pets").doc(tagId).get();
           if (petSnap.exists) {
             const petData = petSnap.data();
+            updatePWA(petData.name || "PetFind", petData.photoUrl); // PWA Icon
             renderPublicProfile(petData, petData.ownerPhone || tag.phone, tag.message);
           } else { renderPublicProfile({name: "Mascota"}, tag.phone, tag.message); }
         }
       } catch (error) { document.getElementById('content').innerHTML = `<p class='text-red-400'>Error: ${error.message}</p>`; }
     }
 
+    function updatePWA(name, iconUrl) {
+      const manifest = { name: name, short_name: name, display: "standalone", start_url: window.location.href, icons: [{ src: iconUrl || "https://via.placeholder.com/192", sizes: "192x192", type: "image/jpeg" }] };
+      const stringManifest = JSON.stringify(manifest);
+      const blob = new Blob([stringManifest], {type: 'application/json'});
+      const manifestURL = URL.createObjectURL(blob);
+      let mLink = document.querySelector('link[rel="manifest"]'); if (!mLink) { mLink = document.createElement('link'); mLink.rel = 'manifest'; document.head.appendChild(mLink); } mLink.href = manifestURL;
+      let aLink = document.querySelector('link[rel="apple-touch-icon"]'); if (!aLink) { aLink = document.createElement('link'); aLink.rel = 'apple-touch-icon'; document.head.appendChild(aLink); } aLink.href = iconUrl;
+    }
+
     function renderClaimForm(tagId, message) {
       document.getElementById('content').innerHTML = `
         <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700">
-          <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">👑</div>
-            <h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1>
-          </div>
+          <div class="text-center mb-8"><div class="w-20 h-20 bg-blue-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">👑</div><h1 class="text-3xl font-extrabold text-white">Activar Perfil Premium</h1></div>
           <div class="space-y-4">
             <input type="email" id="regEmail" placeholder="Tu correo" class="w-full p-4 bg-slate-700 rounded-xl">
             <input type="password" id="regPass" placeholder="Contraseña" class="w-full p-4 bg-slate-700 rounded-xl">
             <div class="flex gap-2">
-              <select id="regCountry" class="w-1/3 p-4 bg-slate-700 rounded-xl">
-                <option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option>
-              </select>
+              <select id="regCountry" class="w-1/3 p-4 bg-slate-700 rounded-xl"><option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option></select>
               <input type="text" id="regPhone" placeholder="Número" class="w-2/3 p-4 bg-slate-700 rounded-xl">
             </div>
             <button onclick="claimProfile('${tagId}', '${message}')" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">Reclamar Perfil</button>
@@ -80,7 +86,7 @@
         catch (err) { if (err.code === 'auth/email-already-in-use') { userId = (await auth.signInWithEmailAndPassword(email, pass)).user.uid; } else { throw err; } }
         await db.collection("tags").doc(tagId).update({ claimed: true, ownerId: userId, phone });
         const petRef = db.collection("pets").doc(tagId);
-        if (!(await petRef.get()).exists) { await petRef.set({ name: "Nombre", description: "Cuéntanos...", photoUrl: "", medicalAlerts: "", ownerPhone: phone, defaultMessage: message }); }
+        if (!(await petRef.get()).exists) { await petRef.set({ name: "Nombre", description: "", photoUrl: "", medicalAlerts: "", ownerPhone: phone, defaultMessage: message }); }
         window.location.href = `dashboard.html?id=${tagId}`;
       } catch (error) { alert("Error: " + error.message); }
     }
@@ -100,6 +106,9 @@
             ${hasPending ? `<div class="bg-yellow-500/20 border border-yellow-500 rounded-xl p-4 flex gap-3 animate-pulse"><span class="text-2xl">🔔</span><div><h3 class="font-bold text-yellow-400">Eventos pendientes</h3><p class="text-sm text-yellow-200">Revisa el calendario en tu panel.</p></div></div>` : ''}
             <button onclick="sendLocation('${phone}', '${message}')" class="w-full bg-green-500 px-6 py-4 rounded-xl font-bold text-lg">📍 Enviar mi Ubicación</button>
             <button onclick="sendPlainMessage('${phone}', '${message}')" class="w-full bg-slate-700 px-6 py-3 rounded-xl">💬 Solo enviar un Mensaje</button>
+            
+            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=Hola%20PetFind,%20me%20gustaría%20información%20sobre%20las%20medallas." target="_blank" class="w-full bg-blue-500 text-white px-6 py-3 rounded-xl font-medium text-center block">🛍️ Comprar esta Medalla</a>
+            
             <div class="text-center pt-4 border-t border-slate-700"><button onclick="showOwnerLogin()" class="text-slate-600 text-xs underline">🔒 Acceso Dueño</button></div>
           </div>
         </div>`;
@@ -111,8 +120,9 @@
           <div class="w-20 h-20 bg-red-600 rounded-full mx-auto flex items-center justify-center text-4xl mb-4">⏳</div>
           <h1 class="text-3xl font-extrabold text-white mb-2">Servicio Inhabilitado</h1>
           <p class="text-slate-400 mt-2 mb-6">El plan premium ha expirado. Contacta al soporte o ingresa al panel para renovar.</p>
-          <div class="bg-slate-700 p-4 rounded-xl text-left mb-4">
-            <p class="text-sm text-slate-300">📧 soporte@petfind.com</p>
+          <div class="bg-slate-700 p-4 rounded-xl text-left mb-4 space-y-2">
+            <p class="text-sm text-slate-300">📧 ${globalSettings.supportEmail || 'soporte@petfind.com'}</p>
+            <a href="https://wa.me/${globalSettings.petfindWhatsapp}?text=Hola%20PetFind,%20mi%20medalla%20está%20inhabilitada%20y%20quiero%20renovar." target="_blank" class="text-sm text-green-400 underline">💬 WhatsApp de PetFind</a>
           </div>
           <div class="text-center pt-4 border-t border-slate-700 mt-4">
             <button onclick="showOwnerLogin()" class="text-slate-400 hover:text-white text-sm underline transition">🔒 Acceso Dueño (Pagar)</button>
@@ -132,20 +142,8 @@
           </div>
         </div>`;
     }
-
-    window.loginOwner = async function() {
-      try { await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value); window.location.href = `dashboard.html?id=${tagId}`; } 
-      catch (e) { alert("Error: " + e.message); }
-    }
-
-    window.sendLocation = function(phone, message) {
-      if (!navigator.geolocation) return alert("Ubicación no soportada.");
-      document.getElementById('content').innerHTML = "<p class='text-blue-400 animate-pulse text-center text-lg'>Obteniendo ubicación...</p>";
-      navigator.geolocation.getCurrentPosition(
-        (pos) => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message + " https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude)}`,
-        () => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-      );
-    }
+    window.loginOwner = async function() { try { await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value); window.location.href = `dashboard.html?id=${tagId}`; } catch (e) { alert("Error: " + e.message); } }
+    window.sendLocation = function(phone, message) { if (!navigator.geolocation) return alert("Ubicación no soportada."); document.getElementById('content').innerHTML = "<p class='text-blue-400 animate-pulse text-center text-lg'>Obteniendo ubicación...</p>"; navigator.geolocation.getCurrentPosition((pos) => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message + " https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude)}`, () => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`); }
     window.sendPlainMessage = function(phone, message) { window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`; }
     init();
   </script>
