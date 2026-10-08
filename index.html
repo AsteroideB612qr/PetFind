@@ -10,7 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script>
     // === CAMBIA ESTO POR TU CORREO DE ADMIN ===
-    const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
+    const ADMIN_EMAIL = "tu_correo_aqui@gmail.com"; 
     // ==========================================
   </script>
 </head>
@@ -44,12 +44,9 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-gray-700 mb-2 font-medium">Billetera (Yape, Plin, etc.)</label><input type="text" id="walletName" class="w-full p-3 border rounded-xl"></div>
         <div><label class="block text-gray-700 mb-2 font-medium">Número de Cuenta</label><input type="text" id="walletNumber" class="w-full p-3 border rounded-xl"></div>
-        
         <div><label class="block text-gray-700 mb-2 font-medium">Precio Plan Básico (Ej: 10.00)</label><input type="text" id="basicPrice" class="w-full p-3 border rounded-xl"></div>
         <div><label class="block text-gray-700 mb-2 font-medium">Precio Suscripción Premium (Ej: 15.00)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl"></div>
-        
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl"></div>
-        
         <div class="md:col-span-2">
           <label class="block text-gray-700 mb-2 font-medium">WhatsApp de PetFind (Ventas/Soporte)</label>
           <div class="flex gap-2">
@@ -57,7 +54,6 @@
             <input type="text" id="petfindWhatsapp" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl">
           </div>
         </div>
-        
         <div><label class="block text-gray-700 mb-2 font-medium">Msg Ventas WhatsApp</label><input type="text" id="waSalesMsg" class="w-full p-3 border rounded-xl"></div>
         <div><label class="block text-gray-700 mb-2 font-medium">Msg Soporte WhatsApp</label><input type="text" id="waSupportMsg" class="w-full p-3 border rounded-xl"></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium">Msg Rescate (QR)</label><input type="text" id="rescueMsg" class="w-full p-3 border rounded-xl"></div>
@@ -176,13 +172,24 @@
       alert("¡Pago aprobado! Recuerda darle al botón +30d para activar los días manualmente."); loadTags();
     }
 
-    function createTag() {
+    // NUEVA FUNCIÓN: Generar ID corto tipo PF123456
+    function generatePlateId() {
+      return 'PF' + Math.floor(100000 + Math.random() * 900000);
+    }
+
+    window.createTag = async function() {
       const petName = document.getElementById('petName').value, planType = document.getElementById('planType').value;
       const message = document.getElementById('rescueMsg').value;
-      db.collection("tags").add({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
-      .then((docRef) => {
+      let newId = generatePlateId();
+      
+      // Verificar que el ID no exista (muy raro pero seguro)
+      const checkSnap = await db.collection("tags").doc(newId).get();
+      if(checkSnap.exists) { newId = generatePlateId(); } // Si existe, genera otro
+
+      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
+      .then(() => {
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
-        window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${docRef.id}`, '_blank');
+        window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${newId}`, '_blank');
         document.getElementById('petName').value = ""; loadTags();
       });
     }
@@ -219,6 +226,7 @@
           list.innerHTML += `
             <div class="flex flex-col p-4 bg-gray-50 rounded-xl border">
               <div class="flex justify-between items-center mb-2"><div class="flex items-center gap-2"><p class="font-bold text-gray-800">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span></div>${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full">Reclamado</span>' : ''}</div>
+              <p class="text-sm font-mono font-bold text-blue-600 mb-1">🛡️ Placa: ${doc.id}</p>
               <p class="text-sm text-gray-500">📞 ${tag.phone || 'Sin asignar'}</p>
               <div class="my-2"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span> ${payBadge}</div>
               <div class="grid grid-cols-2 gap-2 mt-3">
