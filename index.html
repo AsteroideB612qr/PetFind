@@ -7,13 +7,38 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script>
+    // === CAMBIA ESTO POR TU CORREO DE ADMIN ===
+    const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
+    // ==========================================
+  </script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-8">
-  <div class="max-w-4xl mx-auto">
-    <div class="flex flex-col items-center justify-center mb-8 gap-3">
-      <img src="logo.png" alt="PetFind" class="h-24 mb-2">
+
+  <!-- VISTA DE LOGIN -->
+  <div id="loginView" class="flex items-center justify-center min-h-screen">
+    <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
+      <img src="logo.png" alt="PetFind" class="h-20 mx-auto mb-6">
+      <h2 class="text-2xl font-bold text-gray-800 mb-4">Panel Super Admin</h2>
+      <p class="text-gray-500 mb-6">Acceso restringido. Inicia sesión para continuar.</p>
+      <input type="email" id="loginEmail" placeholder="Tu correo de Admin" class="w-full p-3 border rounded-xl mb-3">
+      <input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-3 border rounded-xl mb-4">
+      <button onclick="loginAdmin()" class="w-full bg-blue-600 text-white p-3 rounded-xl font-bold hover:bg-blue-700">Ingresar</button>
+      <p id="loginError" class="text-red-500 text-sm mt-3 hidden">Credenciales incorrectas o no tienes permiso.</p>
     </div>
-    
+  </div>
+
+  <!-- VISTA DEL PANEL (Oculta por defecto) -->
+  <div id="adminView" class="hidden max-w-4xl mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <img src="logo.png" alt="PetFind" class="h-16">
+      <div class="flex gap-2">
+        <a href="landing.html" target="_blank" class="bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-900 flex items-center gap-2">👁️ Ver Landing</a>
+        <button onclick="logoutAdmin()" class="bg-red-100 text-red-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-200">Cerrar Sesión</button>
+      </div>
+    </div>
+
     <div class="bg-white p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-2xl font-bold mb-6 text-gray-800">💳 Configuración Global</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -25,9 +50,7 @@
         <div class="md:col-span-2">
           <label class="block text-gray-700 mb-2 font-medium">WhatsApp de PetFind (Ventas/Soporte)</label>
           <div class="flex gap-2">
-            <select id="petfindCountry" class="w-1/3 p-3 border rounded-xl">
-              <option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option>
-            </select>
+            <select id="petfindCountry" class="w-1/3 p-3 border rounded-xl"><option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option></select>
             <input type="text" id="petfindWhatsapp" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl">
           </div>
         </div>
@@ -57,6 +80,7 @@
     </div>
   </div>
 
+  <!-- MODAL DEL RECIBO -->
   <div id="voucherModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-5 z-50" onclick="closeVoucher()">
     <div class="bg-white p-4 rounded-2xl max-w-md w-full text-center" onclick="event.stopPropagation()">
       <h3 class="text-xl font-bold mb-4">Recibo de Pago</h3>
@@ -76,8 +100,32 @@
     };
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const auth = firebase.auth();
     let currentVoucherTagId = null;
 
+    // --- LÓGICA DE LOGIN ---
+    auth.onAuthStateChanged(user => {
+      if (user && user.email === ADMIN_EMAIL) {
+        document.getElementById('loginView').classList.add('hidden');
+        document.getElementById('adminView').classList.remove('hidden');
+        loadSettings(); loadTags();
+      } else {
+        if(user) auth.signOut(); // Si entra un no-admin, lo bota
+        document.getElementById('loginView').classList.remove('hidden');
+        document.getElementById('adminView').classList.add('hidden');
+      }
+    });
+
+    window.loginAdmin = function() {
+      const email = document.getElementById('loginEmail').value;
+      const pass = document.getElementById('loginPass').value;
+      auth.signInWithEmailAndPassword(email, pass).catch(() => {
+        document.getElementById('loginError').classList.remove('hidden');
+      });
+    }
+    window.logoutAdmin = function() { auth.signOut(); }
+
+    // --- CONFIGURACIONES ---
     async function loadSettings() {
       const snap = await db.collection("settings").doc("payment").get();
       if(snap.exists) {
@@ -114,17 +162,16 @@
       alert("Mensaje actualizado en todas las medallas.");
     }
 
+    // --- RECIBOS Y MEDALLAS ---
     window.showVoucher = function(tagId, imgUrl) { currentVoucherTagId = tagId; document.getElementById('voucherImg').src = imgUrl; document.getElementById('voucherModal').classList.remove('hidden'); document.getElementById('voucherModal').classList.add('flex'); }
     window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
     window.rejectVoucher = async function() {
       await db.collection("tags").doc(currentVoucherTagId).update({ paymentStatus: "rejected", voucherUrl: "" });
-      alert("Recibo rechazado. El cliente fue notificado.");
-      closeVoucher(); loadTags();
+      alert("Recibo rechazado. El cliente fue notificado."); closeVoucher(); loadTags();
     }
     window.approveVoucher = async function(tagId) {
       await db.collection("tags").doc(tagId).update({ paymentStatus: "approved", voucherUrl: "" });
-      alert("¡Pago aprobado! Recuerda darle al botón +30d para activar los días manualmente.");
-      loadTags();
+      alert("¡Pago aprobado! Recuerda darle al botón +30d para activar los días manualmente."); loadTags();
     }
 
     function createTag() {
@@ -160,7 +207,6 @@
             } else if(tag.paymentStatus === 'rejected') {
               payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Pago Rechazado</span>`;
             }
-
             if(tag.subscriptionExpires) {
               const exp = new Date(tag.subscriptionExpires);
               if(exp > new Date()) { subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700"; }
@@ -193,8 +239,6 @@
     }
     window.editPhone = async function(tagId, p) { const np = prompt("WhatsApp:", p); if (np !== null) { await db.collection("tags").doc(tagId).update({ phone: np }); loadTags(); } }
     window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); loadTags(); } }
-
-    loadSettings(); loadTags();
   </script>
 </body>
 </html>
