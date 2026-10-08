@@ -28,7 +28,10 @@
     let petState = {}, tagState = {}, settingsState = {};
 
     auth.onAuthStateChanged(async (user) => {
-      if (!user) { document.getElementById('content').innerHTML = `<div class="text-center mt-20"><a href="scan.html?id=${tagId}" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Volver</a></div>`; return; }
+      if (!user) { 
+        document.getElementById('content').innerHTML = `<div class="text-center mt-20"><a href="scan.html?id=${tagId}" class="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">Volver</a></div>`; 
+        return; 
+      }
       const petSnap = await db.collection("pets").doc(tagId).get();
       const tagSnap = await db.collection("tags").doc(tagId).get();
       const settingsSnap = await db.collection("settings").doc("payment").get();
@@ -38,6 +41,8 @@
         if(!petState.events) petState.events = [];
         updatePWA(petState.name || "PetFind", petState.photoUrl);
         renderDashboard();
+      } else {
+        document.getElementById('content').innerHTML = "<p class='text-red-500 text-center mt-20'>Perfil no encontrado.</p>";
       }
     });
 
@@ -95,7 +100,10 @@
         </div>
 
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
-          <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white"><h2 class="text-xl font-bold">Perfil de la Mascota</h2></div>
+          <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center">
+            <h2 class="text-xl font-bold">Perfil de la Mascota</h2>
+            <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Placa: ${tagId}</span>
+          </div>
           <div class="p-6 space-y-5 ${!isActive ? 'opacity-50 pointer-events-none' : ''}">
             <div class="flex flex-col items-center mb-4">
               <img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white">
@@ -134,7 +142,12 @@
       renderEvents(isActive);
     }
 
-    window.addEvent = function() { petState.events.push({ type: document.getElementById('evType').value, name: document.getElementById('evName').value, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value }); renderEvents(true); document.getElementById('evName').value = ''; document.getElementById('evDate').value = ''; }
+    window.addEvent = function() { 
+      petState.events.push({ type: document.getElementById('evType').value, name: document.getElementById('evName').value, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value }); 
+      renderEvents(true); 
+      document.getElementById('evName').value = ''; 
+      document.getElementById('evDate').value = ''; 
+    }
     
     window.editEvent = function(i) {
       const ev = petState.events[i];
@@ -157,12 +170,33 @@
       list.innerHTML = petState.events.map((ev, i) => `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - ${ev.status}</p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="petState.events.splice(${i},1); renderEvents(true);" class="text-red-500">🗑️</button>` : ''}</div></div>`).join('');
     }
 
-    window.handleFileSelect = function(e) { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>300){h*=300/w; w=300;}}else{if(h>300){w*=300/h; h=300;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); document.getElementById('imgPreview').src=c.toDataURL('image/jpeg',0.7); window.base64Photo=c.toDataURL('image/jpeg',0.7);}; img.src=ev.target.result;}; r.readAsDataURL(f); }
-    window.handleVoucherSelect = function(e) { const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); window.base64Voucher=c.toDataURL('image/jpeg',0.6); alert("Recibo cargado. Presiona Solicitar.");}; img.src=ev.target.result;}; r.readAsDataURL(f); }
+    window.handleFileSelect = function(e) { 
+      const f=e.target.files[0]; if(!f) return; 
+      const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>300){h*=300/w; w=300;}}else{if(h>300){w*=300/h; h=300;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); document.getElementById('imgPreview').src=c.toDataURL('image/jpeg',0.7); window.base64Photo=c.toDataURL('image/jpeg',0.7);}; img.src=ev.target.result;}; r.readAsDataURL(f); 
+    }
+    
+    window.handleVoucherSelect = function(e) { 
+      const f=e.target.files[0]; if(!f) return; 
+      const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); window.base64Voucher=c.toDataURL('image/jpeg',0.6); alert("Recibo cargado. Presiona Solicitar.");}; img.src=ev.target.result;}; r.readAsDataURL(f); 
+    }
 
-    window.submitVoucher = async function() { if(!window.base64Voucher) return alert("Adjunta la imagen primero."); await db.collection("tags").doc(tagId).update({ voucherUrl: window.base64Voucher, paymentStatus: "pending" }); alert("¡Recibo enviado!"); window.location.reload(); }
-    window.savePublicProfile = async function() { const p=document.getElementById('petCountry').value+document.getElementById('petPhone').value; await db.collection("pets").doc(tagId).update({ photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p }); await db.collection("tags").doc(tagId).update({ phone: p }); alert("¡Guardado!"); }
-    window.saveMedicalProfile = async function() { await db.collection("pets").doc(tagId).update({ events: petState.events, rx: document.getElementById('petRx').value, notes: document.getElementById('petNotes').value }); alert("¡Expediente guardado!"); }
+    window.submitVoucher = async function() { 
+      if(!window.base64Voucher) return alert("Adjunta la imagen primero."); 
+      await db.collection("tags").doc(tagId).update({ voucherUrl: window.base64Voucher, paymentStatus: "pending" }); 
+      alert("¡Recibo enviado!"); window.location.reload(); 
+    }
+    
+    window.savePublicProfile = async function() { 
+      const p=document.getElementById('petCountry').value+document.getElementById('petPhone').value; 
+      await db.collection("pets").doc(tagId).update({ photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p }); 
+      await db.collection("tags").doc(tagId).update({ phone: p }); 
+      alert("¡Guardado!"); 
+    }
+    
+    window.saveMedicalProfile = async function() { 
+      await db.collection("pets").doc(tagId).update({ events: petState.events, rx: document.getElementById('petRx').value, notes: document.getElementById('petNotes').value }); 
+      alert("¡Expediente guardado!"); 
+    }
   </script>
 </body>
 </html>
