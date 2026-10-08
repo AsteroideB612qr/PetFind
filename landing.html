@@ -93,7 +93,7 @@
     </div>
   </section>
 
-  <!-- COMPARACIÓN (MANEJO DE OBJECIONES) -->
+  <!-- COMPARACIÓN -->
   <section class="py-16 px-4 bg-white">
     <div class="max-w-4xl mx-auto text-center">
       <h2 class="text-3xl font-bold text-slate-800 mb-2">¿Por qué elegir PetFind y no otras tecnologías?</h2>
@@ -144,7 +144,7 @@
           <h3 class="text-xl font-bold text-slate-800 mb-2">Plan Básico</h3>
           <p class="text-slate-500 text-sm mb-6">Rescate rápido y directo.</p>
           <div class="mb-6">
-            <span class="text-4xl font-extrabold text-slate-800">S/ 10.00</span>
+            <span class="text-4xl font-extrabold text-slate-800">S/ <span id="basicPrice">10.00</span></span>
             <span class="text-slate-500">Pago único</span>
           </div>
           <ul class="space-y-3 text-slate-600 text-sm mb-8">
@@ -212,14 +212,16 @@
       const snap = await db.collection("settings").doc("payment").get();
       if(snap.exists) {
         const s = snap.data();
-        const price = s.subPrice || "15.00";
+        const pPrice = s.subPrice || "15.00";
+        const bPrice = s.basicPrice || "10.00";
         const wa = s.petfindWhatsapp || "";
         
-        document.getElementById('premiumPrice').innerText = price;
+        document.getElementById('premiumPrice').innerText = pPrice;
+        document.getElementById('basicPrice').innerText = bPrice;
         
         const waLink = `https://wa.me/${wa}?text=${encodeURIComponent("Hola PetFind, quiero comprar una medalla para mi mascota.")}`;
-        const waLinkBasic = `https://wa.me/${wa}?text=${encodeURIComponent("Hola PetFind, quiero comprar el Plan Básico (S/ 10.00).")}`;
-        const waLinkPremium = `https://wa.me/${wa}?text=${encodeURIComponent("Hola PetFind, quiero comprar el Plan Premium (S/ " + price + ").")}`;
+        const waLinkBasic = `https://wa.me/${wa}?text=${encodeURIComponent("Hola PetFind, quiero comprar el Plan Básico (S/ " + bPrice + ").")}`;
+        const waLinkPremium = `https://wa.me/${wa}?text=${encodeURIComponent("Hola PetFind, quiero comprar el Plan Premium (S/ " + pPrice + ").")}`;
 
         document.getElementById('navCta').href = waLink;
         document.getElementById('heroCta').href = waLink;
