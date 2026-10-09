@@ -10,7 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script>
     // === CAMBIA ESTO POR TU CORREO DE ADMIN ===
-    const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
+    const ADMIN_EMAIL = "tu_correo_aqui@gmail.com"; 
     // ==========================================
   </script>
 </head>
@@ -85,9 +85,23 @@
       <h3 class="text-xl font-bold mb-4">Recibo de Pago</h3>
       <img id="voucherImg" src="" class="w-full rounded-xl mb-4">
       <div class="flex gap-2">
-        <button onclick="rejectVoucher()" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold">❌ Rechazar</button>
+        <button onclick="rejectVoucher(currentVoucherTagId)" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold">❌ Rechazar</button>
         <button onclick="closeVoucher()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cerrar</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL DEL WHATSAPP -->
+  <div id="phoneModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-5 z-50" onclick="closePhoneModal()">
+    <div class="bg-white p-6 rounded-2xl max-w-md w-full text-center" onclick="event.stopPropagation()">
+      <h3 class="text-xl font-bold mb-4">Asignar WhatsApp</h3>
+      <div class="flex gap-2 mb-4">
+        <select id="phoneCountry" class="w-1/3 p-3 border rounded-xl">
+          <option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option>
+        </select>
+        <input type="text" id="phoneInput" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl">
+      </div>
+      <button onclick="savePhone()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold">Guardar Número</button>
     </div>
   </div>
 
@@ -101,6 +115,7 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
     let currentVoucherTagId = null;
+    let currentPhoneTagId = null;
 
     auth.onAuthStateChanged(user => {
       if (user && user.email === ADMIN_EMAIL) {
@@ -117,9 +132,7 @@
     window.loginAdmin = function() {
       const email = document.getElementById('loginEmail').value;
       const pass = document.getElementById('loginPass').value;
-      auth.signInWithEmailAndPassword(email, pass).catch(() => {
-        document.getElementById('loginError').classList.remove('hidden');
-      });
+      auth.signInWithEmailAndPassword(email, pass).catch(() => document.getElementById('loginError').classList.remove('hidden'));
     }
     window.logoutAdmin = function() { auth.signOut(); }
 
@@ -142,14 +155,10 @@
     window.saveSettings = async function() {
       const fullWa = document.getElementById('petfindCountry').value + document.getElementById('petfindWhatsapp').value;
       await db.collection("settings").doc("payment").set({
-        walletName: document.getElementById('walletName').value,
-        walletNumber: document.getElementById('walletNumber').value,
-        supportEmail: document.getElementById('supportEmail').value,
-        petfindWhatsapp: fullWa,
-        waSalesMsg: document.getElementById('waSalesMsg').value,
-        waSupportMsg: document.getElementById('waSupportMsg').value,
-        rescueMsg: document.getElementById('rescueMsg').value,
-        subPrice: document.getElementById('subPrice').value,
+        walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value,
+        supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa,
+        waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value,
+        rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value,
         basicPrice: document.getElementById('basicPrice').value
       });
       alert("¡Configuración guardada!");
@@ -161,30 +170,51 @@
       alert("Mensaje actualizado en todas las medallas.");
     }
 
-    window.showVoucher = function(tagId, imgUrl) { currentVoucherTagId = tagId; document.getElementById('voucherImg').src = imgUrl; document.getElementById('voucherModal').classList.remove('hidden'); document.getElementById('voucherModal').classList.add('flex'); }
-    window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
-    window.rejectVoucher = async function() {
-      await db.collection("tags").doc(currentVoucherTagId).update({ paymentStatus: "rejected", voucherUrl: "" });
-      alert("Recibo rechazado. El cliente fue notificado."); closeVoucher(); loadTags();
+    // --- MODAL PHONE ---
+    window.editPhone = function(tagId, currentPhone) {
+      currentPhoneTagId = tagId;
+      document.getElementById('phoneCountry').value = currentPhone ? currentPhone.substring(0, 2) : "51";
+      document.getElementById('phoneInput').value = currentPhone ? currentPhone.substring(2) : "";
+      document.getElementById('phoneModal').classList.remove('hidden');
+      document.getElementById('phoneModal').classList.add('flex');
     }
-    window.approveVoucher = async function(tagId) {
-      await db.collection("tags").doc(tagId).update({ paymentStatus: "approved", voucherUrl: "" });
-      alert("¡Pago aprobado! Recuerda darle al botón +30d para activar los días manualmente."); loadTags();
+    window.closePhoneModal = function() { document.getElementById('phoneModal').classList.add('hidden'); }
+    window.savePhone = async function() {
+      const fullPhone = document.getElementById('phoneCountry').value + document.getElementById('phoneInput').value;
+      await db.collection("tags").doc(currentPhoneTagId).update({ phone: fullPhone });
+      alert("WhatsApp actualizado."); closePhoneModal(); loadTags();
     }
 
-    // NUEVA FUNCIÓN: Generar ID corto tipo PF123456
-    function generatePlateId() {
-      return 'PF' + Math.floor(100000 + Math.random() * 900000);
+    // --- VOUCHERS ---
+    window.showVoucher = function(tagId, imgUrl) { 
+      currentVoucherTagId = tagId; 
+      document.getElementById('voucherImg').src = imgUrl; 
+      document.getElementById('voucherModal').classList.remove('hidden'); 
+      document.getElementById('voucherModal').classList.add('flex'); 
     }
+    window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
+    
+    window.approveVoucher = async function(tagId) {
+      await db.collection("tags").doc(tagId).update({ paymentStatus: "approved" });
+      alert("¡Recibo aprobado! Recuerda darle al botón +30d para activar los días manualmente."); loadTags();
+    }
+    window.rejectVoucher = async function(tagId) {
+      await db.collection("tags").doc(tagId).update({ paymentStatus: "rejected" });
+      alert("Recibo rechazado. El cliente fue notificado."); closeVoucher(); loadTags();
+    }
+    window.resolveVoucher = async function(tagId) {
+      await db.collection("tags").doc(tagId).update({ voucherUrl: "" }); // Limpia la imagen pero mantiene el historial de estado
+      alert("Recibo superado y archivado."); loadTags();
+    }
+
+    // --- TAGS ---
+    function generatePlateId() { return 'PF' + Math.floor(100000 + Math.random() * 900000); }
 
     window.createTag = async function() {
       const petName = document.getElementById('petName').value, planType = document.getElementById('planType').value;
       const message = document.getElementById('rescueMsg').value;
       let newId = generatePlateId();
-      
-      // Verificar que el ID no exista (muy raro pero seguro)
-      const checkSnap = await db.collection("tags").doc(newId).get();
-      if(checkSnap.exists) { newId = generatePlateId(); } // Si existe, genera otro
+      if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
 
       db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
       .then(() => {
@@ -205,22 +235,34 @@
           const page = tag.plan === 'basic' ? 'go.html' : 'scan.html';
           const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=https://petfind-omega.vercel.app/${page}?id=${doc.id}`;
           const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
-          let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", voucherButton = "", approveBtn = "", payBadge = "";
+          
+          let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", payBadge = "", voucherBtns = "";
           
           if(tag.plan === 'premium' && tag.claimed) {
-            if(tag.paymentStatus === 'pending' && tag.voucherUrl) {
-              voucherButton = `<button onclick="showVoucher('${doc.id}', '${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm">🧾 Ver Recibo</button>`;
-              approveBtn = `<button onclick="approveVoucher('${doc.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">✅ Aprobar</button>`;
-            } else if(tag.paymentStatus === 'approved') {
-              payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Pago Aprobado</span>`;
-            } else if(tag.paymentStatus === 'rejected') {
-              payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Pago Rechazado</span>`;
-            }
             if(tag.subscriptionExpires) {
               const exp = new Date(tag.subscriptionExpires);
               if(exp > new Date()) { subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700"; }
               else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
             } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
+
+            if(tag.voucherUrl) {
+              voucherBtns = `<button onclick="showVoucher('${doc.id}', '${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm col-span-2">🧾 Ver Recibo</button>`;
+              if(tag.paymentStatus === 'pending') {
+                payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2">Pendiente</span>`;
+                voucherBtns += `<button onclick="approveVoucher('${doc.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">✅ Aprobar</button>`;
+                voucherBtns += `<button onclick="rejectVoucher('${doc.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">❌ Rechazar</button>`;
+              } else if(tag.paymentStatus === 'approved') {
+                payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
+                voucherBtns += `<button onclick="resolveVoucher('${doc.id}')" class="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm col-span-2">✔️ Superar</button>`;
+              } else if(tag.paymentStatus === 'rejected') {
+                payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
+                voucherBtns += `<button onclick="resolveVoucher('${doc.id}')" class="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm col-span-2">✔️ Superar</button>`;
+              }
+            } else {
+               if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
+               else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
+            }
+
             subButtons = `<div class="flex gap-1 col-span-2"><button onclick="adjustDays('${doc.id}', -30)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-xs">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg text-xs">+30d</button></div>`;
           }
           list.innerHTML += `
@@ -231,7 +273,7 @@
               <div class="my-2"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span> ${payBadge}</div>
               <div class="grid grid-cols-2 gap-2 mt-3">
                 <button onclick="window.open('${qrUrl}', '_blank')" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">Ver QR</button>
-                ${voucherButton} ${approveBtn} ${subButtons}
+                ${voucherBtns} ${subButtons}
                 ${tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm">Asignar WhatsApp</button>` : ''}
                 <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">🗑️ Eliminar</button>
               </div>
@@ -247,7 +289,6 @@
       current.setDate(current.getDate() + days);
       await ref.update({ subscriptionExpires: current.toISOString() }); loadTags();
     }
-    window.editPhone = async function(tagId, p) { const np = prompt("WhatsApp:", p); if (np !== null) { await db.collection("tags").doc(tagId).update({ phone: np }); loadTags(); } }
     window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); loadTags(); } }
   </script>
 </body>
