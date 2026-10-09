@@ -79,15 +79,12 @@
     </div>
   </div>
 
-  <!-- MODAL DEL RECIBO -->
+  <!-- MODAL DEL HISTORIAL DE RECIBOS -->
   <div id="voucherModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-5 z-50" onclick="closeVoucher()">
-    <div class="bg-white p-4 rounded-2xl max-w-md w-full text-center" onclick="event.stopPropagation()">
-      <h3 class="text-xl font-bold mb-4">Recibo de Pago</h3>
-      <img id="voucherImg" src="" class="w-full rounded-xl mb-4">
-      <div class="flex gap-2">
-        <button onclick="rejectVoucher(currentVoucherTagId)" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold">❌ Rechazar</button>
-        <button onclick="closeVoucher()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cerrar</button>
-      </div>
+    <div class="bg-white p-4 rounded-2xl max-w-md w-full text-center max-h-[80vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <h3 class="text-xl font-bold mb-4">Historial de Recibos</h3>
+      <div id="voucherModalBody" class="space-y-4"></div>
+      <button onclick="closeVoucher()" class="mt-4 w-full bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cerrar</button>
     </div>
   </div>
 
@@ -186,26 +183,76 @@
     }
 
     // --- VOUCHERS ---
-    window.showVoucher = function(tagId, imgUrl) { 
-      currentVoucherTagId = tagId; 
-      document.getElementById('voucherImg').src = imgUrl; 
-      document.getElementById('voucherModal').classList.remove('hidden'); 
-      document.getElementById('voucherModal').classList.add('flex'); 
+    window.showVouchers = function(tagId) {
+      currentVoucherTagId = tagId;
+      db.collection("tags").doc(tagId).get().then(doc => {
+        const vouchers = doc.data().vouchers || [];
+        const body = document.getElementById('voucherModalBody');
+        if(vouchers.length === 0) {
+          body.innerHTML = "<p class='text-gray-500 py-4'>No hay recibos en el historial.</p>";
+        } else {
+          // Ordenar por fecha descendente (el más nuevo arriba)
+          vouchers.sort((a,b) => new Date(b.date) - new Date(a.date));
+          body.innerHTML = vouchers.map(v => `
+            <div class="border-b pb-4 mb-4">
+              <img src="${v.url}" class="w-full rounded-xl mb-2">
+              <p class="text-sm font-bold mb-2 uppercase ${v.status === 'approved' ? 'text-green-600' : v.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}">Estado: ${v.status}</p>
+              <div class="flex gap-2">
+                ${v.status === 'pending' ? `
+                  <button onclick="approveVoucher('${tagId}', '${v.id}')" class="flex-1 bg-green-600 text-white py-2 rounded-xl font-bold text-sm">✅ Aprobar</button>
+                  <button onclick="rejectVoucher('${tagId}', '${v.id}')" class="flex-1 bg-red-600 text-white py-2 rounded-xl font-bold text-sm">❌ Rechazar</button>
+                ` : `
+                  <button onclick="resolveVoucher('${tagId}', '${v.id}')" class="flex-1 bg-gray-600 text-white py-2 rounded-xl font-bold text-sm">✔️ Superar (Limpiar)</button>
+                `}
+              </div>
+            </div>
+          `).join('');
+        }
+        document.getElementById('voucherModal').classList.remove('hidden');
+        document.getElementById('voucherModal').classList.add('flex');
+      });
     }
     window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
     
-    window.approveVoucher = async function(tagId) {
-      await db.collection("tags").doc(tagId).update({ paymentStatus: "approved" });
-      alert("¡Recibo aprobado! Recuerda darle al botón +30d para activar los días manualmente."); loadTags();
+    window.approveVoucher = async function(tagId, vouchId) {
+      const ref = db.collection("tags").doc(tagId);
+      const doc = await ref.get();
+      let vouchers = doc.data().vouchers || [];
+      let v = vouchers.find(x => x.id === vouchId);
+      if(v) {
+        await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "approved" });
+        v.status = "approved";
+        await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) });
+        alert("¡Recibo aprobado! Recuerda darle al botón +30d para activar los días manualmente."); 
+        showVouchers(tagId); loadTags();
+      }
     }
-    window.rejectVoucher = async function(tagId) {
-      await db.collection("tags").doc(tagId).update({ paymentStatus: "rejected" });
-      alert("Recibo rechazado. El cliente fue notificado."); closeVoucher(); loadTags();
+    window.rejectVoucher = async function(tagId, vouchId) {
+      const ref = db.collection("tags").doc(tagId);
+      const doc = await ref.get();
+      let vouchers = doc.data().vouchers || [];
+      let v = vouchers.find(x => x.id === vouchId);
+      if(v) {
+        await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "rejected" });
+        v.status = "rejected";
+        await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) });
+        alert("Recibo rechazado."); 
+        showVouchers(tagId); loadTags();
+      }
     }
-    window.resolveVoucher = async function(tagId) {
-      // Limpia la imagen y resetea el estado de pago a 'none' para que el dueño pueda subir otro
-      await db.collection("tags").doc(tagId).update({ voucherUrl: "", paymentStatus: "none" }); 
-      alert("Recibo superado. El cliente ya puede subir uno nuevo."); loadTags();
+    window.resolveVoucher = async function(tagId, vouchId) {
+      const ref = db.collection("tags").doc(tagId);
+      const doc = await ref.get();
+      let vouchers = doc.data().vouchers || [];
+      let v = vouchers.find(x => x.id === vouchId);
+      if(v) {
+        await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v) });
+        if(vouchers.length === 1) { // Si era el último, limpiar estado
+          await ref.update({ paymentStatus: "none" });
+        }
+        alert("Recibo superado y archivado."); 
+        showVouchers(tagId); loadTags();
+      }
     }
 
     // --- TAGS ---
@@ -217,7 +264,7 @@
       let newId = generatePlateId();
       if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
 
-      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date() })
+      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date(), vouchers: [] })
       .then(() => {
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
         window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${newId}`, '_blank');
@@ -246,22 +293,13 @@
               else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
             } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
 
-            if(tag.voucherUrl) {
-              voucherBtns = `<button onclick="showVoucher('${doc.id}', '${tag.voucherUrl}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm col-span-2">🧾 Ver Recibo</button>`;
-              if(tag.paymentStatus === 'pending') {
-                payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2">Pendiente</span>`;
-                voucherBtns += `<button onclick="approveVoucher('${doc.id}')" class="bg-green-600 text-white px-4 py-2 rounded-lg text-sm">✅ Aprobar</button>`;
-                voucherBtns += `<button onclick="rejectVoucher('${doc.id}')" class="bg-red-600 text-white px-4 py-2 rounded-lg text-sm">❌ Rechazar</button>`;
-              } else if(tag.paymentStatus === 'approved') {
-                payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
-                voucherBtns += `<button onclick="resolveVoucher('${doc.id}')" class="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm col-span-2">✔️ Superar</button>`;
-              } else if(tag.paymentStatus === 'rejected') {
-                payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
-                voucherBtns += `<button onclick="resolveVoucher('${doc.id}')" class="bg-gray-600 text-white px-4 py-2 rounded-lg text-sm col-span-2">✔️ Superar</button>`;
-              }
-            } else {
-               if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
-               else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
+            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2">Pago Pendiente</span>`;
+            else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Pago Aprobado</span>`;
+            else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Pago Rechazado</span>`;
+
+            const vouchersCount = tag.vouchers ? tag.vouchers.length : 0;
+            if(vouchersCount > 0) {
+              voucherBtns = `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-4 py-2 rounded-lg text-sm col-span-2">🧾 Ver Recibos (${vouchersCount})</button>`;
             }
 
             subButtons = `<div class="flex gap-1 col-span-2"><button onclick="adjustDays('${doc.id}', -30)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="flex-1 bg-red-100 text-red-700 py-2 rounded-lg text-xs">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="flex-1 bg-blue-100 text-blue-700 py-2 rounded-lg text-xs">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="flex-1 bg-green-100 text-green-700 py-2 rounded-lg text-xs">+30d</button></div>`;
