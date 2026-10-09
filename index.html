@@ -10,7 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script>
     // === CAMBIA ESTO POR TU CORREO DE ADMIN ===
-    const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
+    const ADMIN_EMAIL = "tu_correo_aqui@gmail.com"; 
     // ==========================================
   </script>
 </head>
@@ -203,8 +203,9 @@
       alert("Recibo rechazado. El cliente fue notificado."); closeVoucher(); loadTags();
     }
     window.resolveVoucher = async function(tagId) {
-      await db.collection("tags").doc(tagId).update({ voucherUrl: "" }); // Limpia la imagen pero mantiene el historial de estado
-      alert("Recibo superado y archivado."); loadTags();
+      // Limpia la imagen y resetea el estado de pago a 'none' para que el dueño pueda subir otro
+      await db.collection("tags").doc(tagId).update({ voucherUrl: "", paymentStatus: "none" }); 
+      alert("Recibo superado. El cliente ya puede subir uno nuevo."); loadTags();
     }
 
     // --- TAGS ---
