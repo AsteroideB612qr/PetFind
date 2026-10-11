@@ -74,7 +74,7 @@
     </div>
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-gray-100">
-      <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">📋 Inventario</h2>
+      <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">📋 Inventario (En tiempo real)</h2>
       <div id="tagsList" class="space-y-4"></div>
     </div>
   </div>
@@ -118,7 +118,7 @@
       if (user && user.email === ADMIN_EMAIL) {
         document.getElementById('loginView').classList.add('hidden');
         document.getElementById('adminView').classList.remove('hidden');
-        loadSettings(); loadTags();
+        loadSettings(); listenTags(); // Usamos listener en tiempo real
       } else {
         if(user) auth.signOut();
         document.getElementById('loginView').classList.remove('hidden');
@@ -178,7 +178,7 @@
     window.savePhone = async function() {
       const fullPhone = document.getElementById('phoneCountry').value + document.getElementById('phoneInput').value;
       await db.collection("tags").doc(currentPhoneTagId).update({ phone: fullPhone });
-      alert("WhatsApp actualizado."); closePhoneModal(); loadTags();
+      alert("WhatsApp actualizado."); closePhoneModal();
     }
 
     window.showVouchers = function(tagId) {
@@ -191,8 +191,9 @@
         } else {
           vouchers.sort((a,b) => new Date(b.date) - new Date(a.date));
           body.innerHTML = vouchers.map(v => `
-            <div class="border-b pb-4 mb-4">
-              <img src="${v.url}" class="w-full rounded-xl mb-2">
+            <div class="border-b pb-4 mb-4 text-left">
+              <p class="text-xs text-gray-500 mb-1">Enviado: ${new Date(v.date).toLocaleString()}</p>
+              <img src="${v.url}" class="w-full rounded-xl mb-3">
               <p class="text-sm font-bold mb-2 uppercase ${v.status === 'approved' ? 'text-green-600' : v.status === 'rejected' ? 'text-red-600' : 'text-yellow-600'}">Estado: ${v.status}</p>
               <div class="flex flex-col gap-2">
                 ${v.status === 'pending' ? `
@@ -221,7 +222,7 @@
         v.status = "approved";
         await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) });
         alert("¡Recibo aprobado! Recuerda darle al botón +30d para activar los días."); 
-        showVouchers(tagId); loadTags();
+        showVouchers(tagId); 
       }
     }
     window.rejectVoucher = async function(tagId, vouchId) {
@@ -234,7 +235,7 @@
         v.status = "rejected";
         await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) });
         alert("Recibo rechazado."); 
-        showVouchers(tagId); loadTags();
+        showVouchers(tagId); 
       }
     }
     window.resolveVoucher = async function(tagId, vouchId) {
@@ -246,7 +247,7 @@
         await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v) });
         if(vouchers.length === 1) await ref.update({ paymentStatus: "none" });
         alert("Recibo superado y archivado."); 
-        showVouchers(tagId); loadTags();
+        showVouchers(tagId); 
       }
     }
 
@@ -261,14 +262,15 @@
       .then(() => {
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
         window.open(`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=https://petfind-omega.vercel.app/${page}?id=${newId}`, '_blank');
-        document.getElementById('petName').value = ""; loadTags();
+        document.getElementById('petName').value = "";
       });
     }
 
-    function loadTags() {
+    // LISTENER EN TIEMPO REAL
+    function listenTags() {
       const list = document.getElementById('tagsList');
       list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando...</p>";
-      db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+      db.collection("tags").orderBy("createdAt", "desc").onSnapshot((querySnapshot) => {
         list.innerHTML = "";
         if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
@@ -286,7 +288,7 @@
               else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
             } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
 
-            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2">Pago Pendiente</span>`;
+            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">Pago Pendiente</span>`;
             else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Pago Aprobado</span>`;
             else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Pago Rechazado</span>`;
 
@@ -331,9 +333,9 @@
       let current = snap.data().subscriptionExpires ? new Date(snap.data().subscriptionExpires) : new Date();
       if(current < new Date()) current = new Date();
       current.setDate(current.getDate() + days);
-      await ref.update({ subscriptionExpires: current.toISOString() }); loadTags();
+      await ref.update({ subscriptionExpires: current.toISOString() });
     }
-    window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); loadTags(); } }
+    window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); } }
   </script>
 </body>
 </html>
