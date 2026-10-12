@@ -32,7 +32,6 @@
     const isDemo = urlParams.get('demo') === 'true';
     let petState = {}, tagState = {}, settingsState = {};
 
-    // DATOS FICTICIOS PARA LA DEMO
     const demoData = {
       pet: {
         name: "Max", species: "Perro", breed: "Golden Retriever", sex: "Macho", birthDate: "2022-05-10",
@@ -105,6 +104,7 @@
       const currentCountry = (petState.ownerPhone || "").substring(0, 2);
       const currentPhone = (petState.ownerPhone || "").substring(2);
       const logoutBtn = isDemo ? `<a href="landing.html" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">🚪 Salir de Demo</a>` : `<button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">Cerrar Sesión</button>`;
+      const publicLink = isDemo ? 'scan.html?demo=true' : 'scan.html?id=' + tagId;
       
       document.getElementById('content').innerHTML = `
         <div class="flex flex-col items-center mb-8 pt-8">
@@ -168,7 +168,7 @@
             <button onclick="saveMedicalProfile()" class="w-full bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Expediente</button>
           </div>
         </div>
-        <div class="text-center pb-10"><a href="${isDemo ? 'scan.html?demo=true' : `scan.html?id=${tagId}`}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
+        <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
       `;
       renderMembership();
       renderEvents(tagState.subscriptionExpires && new Date(tagState.subscriptionExpires) > new Date());
