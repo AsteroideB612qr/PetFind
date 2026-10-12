@@ -107,7 +107,6 @@
     function renderPublicProfile(pet, phone, message) {
       let hasPending = pet.events && pet.events.length > 0 && pet.events.some(ev => ev.status === 'Pendiente');
       
-      // Crear chips de información
       let infoChips = [];
       if (pet.showSpecies && pet.species) infoChips.push({ icon: '🐾', text: pet.species });
       if (pet.showBreed && pet.breed) infoChips.push({ icon: '🏷️', text: pet.breed });
@@ -130,17 +129,28 @@
         </div>
       ` : '';
 
+      // Lógica para mostrar Foto y Nombre
+      const showPhoto = pet.showPhoto !== false;
+      const showName = pet.showName !== false;
+
+      const photoHTML = showPhoto && pet.photoUrl 
+        ? `<img src="${pet.photoUrl}" class="w-32 h-32 rounded-full object-cover border-4 border-slate-800 shadow-lg mb-2">` 
+        : `<div class="w-32 h-32 rounded-full bg-slate-700 border-4 border-slate-800 flex items-center justify-center text-5xl mb-2">🐾</div>`;
+      
+      const nameHTML = showName 
+        ? `<h1 class="text-3xl font-extrabold text-white text-center">${pet.name || 'Mascota'}</h1>` 
+        : `<h1 class="text-2xl font-extrabold text-slate-400 text-center">Mascota Encontrada</h1>`;
+
       document.getElementById('content').innerHTML = `
         <div class="flex justify-center mb-4"><img src="logo.png" alt="PetFind" class="h-16"></div>
         <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
           
-          <!-- Nueva cabecera con foto redonda -->
-          <div class="relative h-32 bg-gradient-to-b from-slate-700 to-slate-800">
-            ${pet.photoUrl ? `<img src="${pet.photoUrl}" class="w-full h-full object-cover opacity-40">` : `<div class="w-full h-full bg-slate-700"></div>`}
-          </div>
-          <div class="px-6 pb-6 -mt-16 flex flex-col items-center">
-            ${pet.photoUrl ? `<img src="${pet.photoUrl}" class="w-32 h-32 rounded-full object-cover border-4 border-slate-800 shadow-lg mb-2">` : `<div class="w-32 h-32 rounded-full bg-slate-600 border-4 border-slate-800 flex items-center justify-center text-5xl mb-2">🐾</div>`}
-            <h1 class="text-3xl font-extrabold text-white text-center">${pet.name || 'Mascota'}</h1>
+          <!-- Cabecera limpia (sin imagen de fondo) -->
+          <div class="h-24 bg-gradient-to-b from-slate-700 to-slate-800"></div>
+          
+          <div class="px-6 pb-6 -mt-12 flex flex-col items-center">
+            ${photoHTML}
+            ${nameHTML}
             ${chipsHTML}
           </div>
 
