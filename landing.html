@@ -18,7 +18,10 @@
   <nav class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
       <img src="logo.png" alt="PetFind" class="h-12">
-      <a id="navCta" href="#" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition">Comprar Ahora</a>
+      <div class="flex gap-2">
+        <a href="dashboard.html?demo=true" target="_blank" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition">🧪 Probar Demo</a>
+        <a id="navCta" href="#" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition">Comprar Ahora</a>
+      </div>
     </div>
   </nav>
 
@@ -32,10 +35,15 @@
       <p class="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
         Cada año miles de mascotas se pierden. La diferencia entre volver a casa o no, son los <strong>5 segundos</strong> que tarda alguien en escanear la medalla de PetFind.
       </p>
-      <a id="heroCta" href="#" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg transition transform hover:scale-105 inline-flex items-center gap-2">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
-        Pídela por WhatsApp
-      </a>
+      <div class="flex flex-col md:flex-row gap-4 justify-center items-center">
+        <a id="heroCta" href="#" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg transition transform hover:scale-105 inline-flex items-center gap-2">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+          Pídela por WhatsApp
+        </a>
+        <a href="dashboard.html?demo=true" target="_blank" class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-4 rounded-2xl font-bold text-md shadow-lg transition transform hover:scale-105 inline-flex items-center gap-2">
+          🧪 Ver Demostración
+        </a>
+      </div>
       <p class="text-slate-400 text-sm mt-4">⚠️ El 90% de las mascotas que se pierden sin identificación, nunca vuelven a casa.</p>
     </div>
   </header>
@@ -64,7 +72,7 @@
     </div>
   </section>
 
-  <!-- COMPARACIÓN (MANEJO DE OBJECIONES) -->
+  <!-- COMPARACIÓN -->
   <section class="py-16 px-4 bg-slate-50">
     <div class="max-w-4xl mx-auto text-center">
       <span class="text-blue-600 font-bold uppercase tracking-wide text-sm">Por qué PetFind es mejor</span>
@@ -81,13 +89,15 @@
               <li class="flex gap-3"><span class="text-green-500 text-2xl">4️⃣</span> <p class="text-slate-600">¡Vuelves a abrazarlo! Tranquilo, seguro y en tiempo récord.</p></li>
             </ul>
           </div>
-          <div class="bg-slate-800 rounded-2xl p-6 text-white text-center h-full flex flex-col justify-center">
-            <div class="w-24 h-24 bg-slate-700 rounded-full mx-auto flex items-center justify-center text-5xl mb-4">🐾</div>
-            <h4 class="font-bold text-lg mb-2">"Max"</h4>
-            <p class="text-slate-400 text-sm mb-4">Soy amigable, pero necesito mi medicina a las 3pm.</p>
-            <button class="bg-green-500 w-full py-3 rounded-xl font-bold mb-2">📍 Enviar mi Ubicación</button>
-            <button class="bg-slate-700 w-full py-2 rounded-xl text-sm">💬 Enviar un Mensaje</button>
-          </div>
+          <a href="scan.html?demo=true" target="_blank" class="bg-slate-800 rounded-2xl p-6 text-white text-center h-full flex flex-col justify-center hover:bg-slate-700 transition cursor-pointer">
+            <div class="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-5xl mb-4 overflow-hidden border-4 border-slate-600">
+              <img src="https://images.unsplash.com/photo-1633722715537-4e89c6bce2f1?q=80&w=200&auto=format&fit=crop" alt="Max" class="w-full h-full object-cover">
+            </div>
+            <h4 class="font-bold text-lg mb-2">"Max" (Demo)</h4>
+            <p class="text-slate-400 text-sm mb-4">Toca para simular que encontraste a esta mascota.</p>
+            <span class="bg-green-500 w-full py-3 rounded-xl font-bold mb-2 block">📍 Enviar mi Ubicación</span>
+            <span class="bg-slate-700 w-full py-2 rounded-xl text-sm block">💬 Enviar un Mensaje</span>
+          </a>
         </div>
       </div>
 
@@ -98,14 +108,12 @@
           <p class="text-slate-600 text-sm"><strong class="text-red-500">El problema:</strong> Cuestan más de S/ 150, requieren recargas eléctricas, se malogran con el agua y pierden señal. Si no tienen batería, no sirven.</p>
           <p class="text-green-600 font-bold text-sm mt-3">✅ PetFind: No usa pilas. Siempre está listo y cuesta una fracción.</p>
         </div>
-        
         <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-yellow-500">
           <div class="text-3xl mb-3">💉</div>
           <h3 class="font-bold text-lg text-slate-800 mb-2">Microchips Internos</h3>
           <p class="text-slate-600 text-sm"><strong class="text-yellow-500">El problema:</strong> Están ocultos bajo la piel. La persona que encuentra a tu mascota no tiene un lector veterinario especial en su casa.</p>
           <p class="text-green-600 font-bold text-sm mt-3">✅ PetFind: Visible y al alcance de cualquier celular con cámara.</p>
         </div>
-        
         <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
           <div class="text-3xl mb-3">📱</div>
           <h3 class="font-bold text-lg text-slate-800 mb-2">Etiquetas NFC</h3>
@@ -132,14 +140,10 @@
       <p class="text-green-600 font-bold mb-10">🎁 ¡Promo de Lanzamiento! Compra la medalla física y el primer mes del Plan Premium es GRATIS.</p>
       
       <div class="grid md:grid-cols-2 gap-6 text-left">
-        <!-- BÁSICO -->
         <div class="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-lg hover:scale-105 transition">
           <h3 class="text-xl font-bold text-slate-800 mb-2">Plan Básico</h3>
           <p class="text-slate-500 text-sm mb-6">Rescate rápido y directo.</p>
-          <div class="mb-6">
-            <span class="text-4xl font-extrabold text-slate-800">S/ <span id="basicPrice">20.00</span></span>
-            <span class="text-slate-500">Pago único</span>
-          </div>
+          <div class="mb-6"><span class="text-4xl font-extrabold text-slate-800">S/ <span id="basicPrice">20.00</span></span><span class="text-slate-500">Pago único</span></div>
           <ul class="space-y-3 text-slate-600 text-sm mb-8">
             <li class="flex gap-2">✅ <span>Medalla física con QR grabado.</span></li>
             <li class="flex gap-2">✅ <span>Redireccionamiento directo a WhatsApp.</span></li>
@@ -150,14 +154,12 @@
           <a id="basicCta" href="#" target="_blank" class="block text-center bg-slate-700 text-white py-3 rounded-xl font-bold hover:bg-slate-800">Comprar Básico</a>
         </div>
 
-        <!-- PREMIUM -->
         <div class="bg-slate-800 p-8 rounded-3xl border-2 border-blue-500 shadow-xl relative hover:scale-105 transition">
           <div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-green-500 text-white text-xs font-bold px-4 py-1 rounded-full uppercase">1er Mes GRATIS</div>
           <h3 class="text-xl font-bold text-white mb-2">Plan Premium 👑</h3>
           <p class="text-slate-400 text-sm mb-6">Protección y salud completa.</p>
           <div class="mb-6">
-            <span class="text-4xl font-extrabold text-white">S/ <span id="premiumPrice">14.90</span></span>
-            <span class="text-slate-400">/ mes</span>
+            <span class="text-4xl font-extrabold text-white">S/ <span id="premiumPrice">14.90</span></span><span class="text-slate-400">/ mes</span>
             <p class="text-green-400 text-sm font-bold mt-1">Hoy: Solo pagas la medalla física. El 1er mes va por nuestra cuenta.</p>
           </div>
           <ul class="space-y-3 text-slate-300 text-sm mb-8">
