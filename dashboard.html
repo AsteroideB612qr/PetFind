@@ -100,14 +100,33 @@
             <span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Placa: ${tagId}</span>
           </div>
           <div class="p-6 space-y-5">
-            <div class="flex flex-col items-center mb-4">
-              <img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white">
-              <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
-              <button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button>
+            
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="font-medium text-sm">Nombre</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-500">Mostrar en público</span>
+                  <input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}>
+                </div>
+              </div>
+              <input type="text" id="petName" value="${petState.name || ''}" placeholder="Ej: Max" class="w-full p-3 border rounded-xl">
             </div>
-            
-            <div><label class="block font-medium mb-1">Nombre</label><input type="text" id="petName" value="${petState.name || ''}" placeholder="Ej: Max" class="w-full p-3 border rounded-xl"></div>
-            
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="font-medium text-sm">Foto</label>
+                <div class="flex items-center gap-2">
+                  <span class="text-xs text-gray-500">Mostrar en público</span>
+                  <input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}>
+                </div>
+              </div>
+              <div class="flex flex-col items-center mb-4 mt-2">
+                <img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white">
+                <input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)">
+                <button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button>
+              </div>
+            </div>
+
             <div class="bg-slate-50 p-4 rounded-xl border">
               <h3 class="font-bold mb-3 text-sm text-slate-600">📋 Información Básica (Marca la casilla ✅ si quieres que se vea en el perfil público)</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
@@ -304,7 +323,6 @@
       }).join('');
     }
 
-    // Compresor de foto mejorado (600x600 a 0.8 de calidad para que se vea nítida)
     window.handleFileSelect = function(e) { 
       const f=e.target.files[0]; if(!f) return; 
       const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); document.getElementById('imgPreview').src=c.toDataURL('image/jpeg',0.8); window.base64Photo=c.toDataURL('image/jpeg',0.8);}; img.src=ev.target.result;}; r.readAsDataURL(f); 
@@ -322,7 +340,6 @@
       alert("¡Recibo enviado!"); 
     }
     
-    // Guarda todos los nuevos campos y sus checkboxes
     window.savePublicProfile = async function() { 
       const p=document.getElementById('petCountry').value+document.getElementById('petPhone').value; 
       const data = {
@@ -331,22 +348,14 @@
         description: document.getElementById('petDesc').value, 
         medicalAlerts: document.getElementById('petAlerts').value, 
         ownerPhone: p,
-        species: document.getElementById('species').value,
-        breed: document.getElementById('breed').value,
-        sex: document.getElementById('sex').value,
-        birthDate: document.getElementById('birthDate').value,
-        weight: document.getElementById('weight').value,
-        diet: document.getElementById('diet').value,
-        color: document.getElementById('color').value,
-        sterilized: document.getElementById('sterilized').value,
-        showSpecies: document.getElementById('showSpecies').checked,
-        showBreed: document.getElementById('showBreed').checked,
-        showSex: document.getElementById('showSex').checked,
-        showBirthDate: document.getElementById('showBirthDate').checked,
-        showAge: document.getElementById('showAge').checked,
-        showWeight: document.getElementById('showWeight').checked,
-        showDiet: document.getElementById('showDiet').checked,
-        showColor: document.getElementById('showColor').checked,
+        species: document.getElementById('species').value, breed: document.getElementById('breed').value, sex: document.getElementById('sex').value,
+        birthDate: document.getElementById('birthDate').value, weight: document.getElementById('weight').value, diet: document.getElementById('diet').value,
+        color: document.getElementById('color').value, sterilized: document.getElementById('sterilized').value,
+        showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked,
+        showSpecies: document.getElementById('showSpecies').checked, showBreed: document.getElementById('showBreed').checked,
+        showSex: document.getElementById('showSex').checked, showBirthDate: document.getElementById('showBirthDate').checked,
+        showAge: document.getElementById('showAge').checked, showWeight: document.getElementById('showWeight').checked,
+        showDiet: document.getElementById('showDiet').checked, showColor: document.getElementById('showColor').checked,
         showSterilized: document.getElementById('showSterilized').checked
       };
       await db.collection("pets").doc(tagId).update(data); 
