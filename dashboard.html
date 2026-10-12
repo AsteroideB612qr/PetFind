@@ -69,7 +69,7 @@
       if (isDemo) {
         petState = demoData.pet;
         tagState = demoData.tag;
-        settingsState = { petfindWhatsapp: "51987654321", waSupportMsg: "Hola, quiero soporte." };
+        settingsState = { petfindWhatsapp: "51987654321", waSupportMsg: "Hola, quiero soporte.", walletName: "Yape Demo", walletNumber: "999999999", subPrice: "14.90" };
         document.getElementById('supportBtn').href = `https://wa.me/${settingsState.petfindWhatsapp}`;
         document.getElementById('supportBtn').style.display = 'flex';
         renderDashboard();
@@ -177,8 +177,48 @@
     function renderMembership() {
       const expDate = tagState.subscriptionExpires ? new Date(tagState.subscriptionExpires) : null;
       const isActive = expDate && expDate > new Date();
-      const membershipHTML = isActive ? `<p class="text-green-600 font-bold text-center p-6">✅ ¡Tu mascota está protegida! ${isDemo ? '(Cuenta Demo)' : `Vence el ${expDate.toLocaleDateString()}`}</p>` : `<p class="text-red-600 font-bold text-center p-6">Membresía inactiva.</p>`;
-      document.getElementById('membershipBox').innerHTML = `<div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white"><h2 class="text-xl font-bold">👑 Membresía PetFind</h2></div><div class="p-6 space-y-4">${membershipHTML}</div>`;
+      const payStatus = tagState.paymentStatus || 'none';
+      
+      const paymentForm = `
+        <div class="text-center space-y-3 border-t border-slate-200 pt-4 mt-4">
+          <p class="text-gray-600 font-medium">Realiza el pago de renovación de S/ ${settingsState.subPrice || '15.00'} a la siguiente cuenta:</p>
+          <div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center">
+            <div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div>
+            <button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Número copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button>
+          </div>
+          <input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)">
+          <button id="voucherUploadBtn" onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium">🧾 Adjuntar Nuevo Recibo</button>
+          <div id="voucherStatus" class="text-green-600 font-bold text-sm hidden">✅ Recibo cargado correctamente</div>
+          <button id="voucherSendBtn" onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold opacity-50 pointer-events-none">Solicitar Activación</button>
+        </div>`;
+
+      let membershipHTML = '';
+      if (isActive) {
+        membershipHTML = `<p class="text-green-600 font-bold text-center p-6">✅ ¡Tu mascota está protegida! ${isDemo ? '(Cuenta Demo)' : `Vence el ${expDate.toLocaleDateString()}`}</p>`;
+      } else if (payStatus === 'pending') {
+        membershipHTML = `<p class="text-blue-600 font-bold text-center p-6 animate-pulse">⏳ Recibo enviado, esperando revisión del administrador...</p>`;
+      } else if (payStatus === 'approved') {
+        membershipHTML = `<p class="text-blue-600 font-bold text-center p-6">✅ Pago aprobado. El administrador activará tu suscripción en breve.</p>`;
+      } else if (payStatus === 'rejected') {
+        membershipHTML = `
+          <p class="text-red-600 font-bold text-center mb-4 pt-6">⏳ Tu membresía premium ha vencido.</p>
+          <p class="text-red-500 text-center mb-4">❌ Tu último recibo fue rechazado. Contacta a soporte si tienes dudas, o adjunta un nuevo recibo abajo:</p>
+          <div class="px-6 pb-6">
+            <a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind, tuve un problema con mi recibo.')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>
+            ${paymentForm}
+          </div>
+        `;
+      } else {
+        membershipHTML = `
+          <p class="text-red-600 font-bold text-center mb-4 pt-6">⏳ Tu membresía premium ha vencido.</p>
+          <div class="px-6 pb-6">${paymentForm}</div>
+        `;
+      }
+
+      document.getElementById('membershipBox').innerHTML = `
+        <div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white"><h2 class="text-xl font-bold">👑 Membresía PetFind</h2></div>
+        <div class="p-6 space-y-4">${membershipHTML}</div>
+      `;
     }
 
     window.addEvent = function() { 
@@ -197,6 +237,18 @@
     window.handleFileSelect = function(e) { 
       if(isDemo) return alert("En la demo no puedes subir fotos, pero en tu cuenta real sí podrás hacerlo y se verá nítida!");
       const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); document.getElementById('imgPreview').src=c.toDataURL('image/jpeg',0.8); window.base64Photo=c.toDataURL('image/jpeg',0.8);}; img.src=ev.target.result;}; r.readAsDataURL(f); 
+    }
+    window.handleVoucherSelect = function(e) { 
+      if(isDemo) return alert("En la demo no puedes subir recibos.");
+      const f=e.target.files[0]; if(!f) return; 
+      const r=new FileReader(); r.onload=(ev)=>{const img=new Image(); img.onload=()=>{const c=document.createElement('canvas'); const x=c.getContext('2d'); let w=img.width, h=img.height; if(w>h){if(w>600){h*=600/w; w=600;}}else{if(h>600){w*=600/h; h=600;}} c.width=w; c.height=h; x.drawImage(img,0,0,w,h); window.base64Voucher=c.toDataURL('image/jpeg',0.5); document.getElementById('voucherUploadBtn').innerText = '✅ Recibo Cargado (Click para cambiar)'; document.getElementById('voucherStatus').classList.remove('hidden'); document.getElementById('voucherSendBtn').classList.remove('opacity-50', 'pointer-events-none');}; img.src=ev.target.result;}; r.readAsDataURL(f); 
+    }
+    window.submitVoucher = async function() { 
+      if(isDemo) return alert("En la demo no puedes enviar recibos.");
+      if(!window.base64Voucher) return alert("Adjunta la imagen primero."); 
+      const newVoucher = { id: Date.now().toString(), url: window.base64Voucher, status: "pending", date: new Date().toISOString() };
+      await db.collection("tags").doc(tagId).update({ paymentStatus: "pending", vouchers: firebase.firestore.FieldValue.arrayUnion(newVoucher) });
+      alert("¡Recibo enviado!"); 
     }
     window.savePublicProfile = async function() { 
       if(isDemo) return alert("¡Excelente! Así es como se editaría el perfil. Compra tu medalla PetFind para guardar los datos de tu mascota.");
