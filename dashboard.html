@@ -104,10 +104,7 @@
             <div>
               <div class="flex justify-between items-center mb-1">
                 <label class="font-medium text-sm">Nombre</label>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500">Mostrar en público</span>
-                  <input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}>
-                </div>
+                <div class="flex items-center gap-2"><span class="text-xs text-gray-500">Mostrar en público</span><input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}></div>
               </div>
               <input type="text" id="petName" value="${petState.name || ''}" placeholder="Ej: Max" class="w-full p-3 border rounded-xl">
             </div>
@@ -115,10 +112,7 @@
             <div>
               <div class="flex justify-between items-center mb-1">
                 <label class="font-medium text-sm">Foto</label>
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-gray-500">Mostrar en público</span>
-                  <input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}>
-                </div>
+                <div class="flex items-center gap-2"><span class="text-xs text-gray-500">Mostrar en público</span><input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}></div>
               </div>
               <div class="flex flex-col items-center mb-4 mt-2">
                 <img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white">
@@ -130,97 +124,76 @@
             <div class="bg-slate-50 p-4 rounded-xl border">
               <h3 class="font-bold mb-3 text-sm text-slate-600">📋 Información Básica (Marca la casilla ✅ si quieres que se vea en el perfil público)</h3>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Especie</label>
-                    <input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Especie</label><input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}></div>
                   <input type="text" id="species" value="${petState.species || ''}" placeholder="Perro, Gato..." class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Raza</label>
-                    <input type="checkbox" id="showBreed" class="w-5 h-5 text-blue-600 rounded" ${petState.showBreed ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Raza</label><input type="checkbox" id="showBreed" class="w-5 h-5 text-blue-600 rounded" ${petState.showBreed ? 'checked' : ''}></div>
                   <input type="text" id="breed" value="${petState.breed || ''}" placeholder="Labrador, Poodle..." class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Sexo</label>
-                    <input type="checkbox" id="showSex" class="w-5 h-5 text-blue-600 rounded" ${petState.showSex ? 'checked' : ''}>
-                  </div>
-                  <select id="sex" class="w-full p-2 border rounded-lg">
-                    <option value="Macho" ${petState.sex === 'Macho' ? 'selected' : ''}>Macho</option>
-                    <option value="Hembra" ${petState.sex === 'Hembra' ? 'selected' : ''}>Hembra</option>
-                  </select>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Sexo</label><input type="checkbox" id="showSex" class="w-5 h-5 text-blue-600 rounded" ${petState.showSex ? 'checked' : ''}></div>
+                  <select id="sex" class="w-full p-2 border rounded-lg"><option value="Macho" ${petState.sex === 'Macho' ? 'selected' : ''}>Macho</option><option value="Hembra" ${petState.sex === 'Hembra' ? 'selected' : ''}>Hembra</option></select>
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">F. Nacimiento</label>
-                    <input type="checkbox" id="showBirthDate" class="w-5 h-5 text-blue-600 rounded" ${petState.showBirthDate ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">F. Nacimiento</label><input type="checkbox" id="showBirthDate" class="w-5 h-5 text-blue-600 rounded" ${petState.showBirthDate ? 'checked' : ''}></div>
                   <input type="date" id="birthDate" value="${petState.birthDate || ''}" class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Edad (Auto)</label>
-                    <input type="checkbox" id="showAge" class="w-5 h-5 text-blue-600 rounded" ${petState.showAge ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Edad (Auto)</label><input type="checkbox" id="showAge" class="w-5 h-5 text-blue-600 rounded" ${petState.showAge ? 'checked' : ''}></div>
                   <input type="text" value="${calculateAge(petState.birthDate) || 'Se calcula sola'}" disabled class="w-full p-2 border rounded-lg bg-slate-100 text-slate-500">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Último Peso</label>
-                    <input type="checkbox" id="showWeight" class="w-5 h-5 text-blue-600 rounded" ${petState.showWeight ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Último Peso</label><input type="checkbox" id="showWeight" class="w-5 h-5 text-blue-600 rounded" ${petState.showWeight ? 'checked' : ''}></div>
                   <input type="text" id="weight" value="${petState.weight || ''}" placeholder="Ej: 12 kg" class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Alimentación</label>
-                    <input type="checkbox" id="showDiet" class="w-5 h-5 text-blue-600 rounded" ${petState.showDiet ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Alimentación</label><input type="checkbox" id="showDiet" class="w-5 h-5 text-blue-600 rounded" ${petState.showDiet ? 'checked' : ''}></div>
                   <input type="text" id="diet" value="${petState.diet || ''}" placeholder="Ej: Croquetas, Barf..." class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Color</label>
-                    <input type="checkbox" id="showColor" class="w-5 h-5 text-blue-600 rounded" ${petState.showColor ? 'checked' : ''}>
-                  </div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Color</label><input type="checkbox" id="showColor" class="w-5 h-5 text-blue-600 rounded" ${petState.showColor ? 'checked' : ''}></div>
                   <input type="text" id="color" value="${petState.color || ''}" placeholder="Ej: Blanco y negro" class="w-full p-2 border rounded-lg">
                 </div>
-
                 <div>
-                  <div class="flex justify-between items-center mb-1">
-                    <label class="font-medium text-sm">Esterilizado</label>
-                    <input type="checkbox" id="showSterilized" class="w-5 h-5 text-blue-600 rounded" ${petState.showSterilized ? 'checked' : ''}>
-                  </div>
-                  <select id="sterilized" class="w-full p-2 border rounded-lg">
-                    <option value="Sí" ${petState.sterilized === 'Sí' ? 'selected' : ''}>Sí</option>
-                    <option value="No" ${petState.sterilized === 'No' ? 'selected' : ''}>No</option>
-                  </select>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Esterilizado</label><input type="checkbox" id="showSterilized" class="w-5 h-5 text-blue-600 rounded" ${petState.showSterilized ? 'checked' : ''}></div>
+                  <select id="sterilized" class="w-full p-2 border rounded-lg"><option value="Sí" ${petState.sterilized === 'Sí' ? 'selected' : ''}>Sí</option><option value="No" ${petState.sterilized === 'No' ? 'selected' : ''}>No</option></select>
                 </div>
-
+                <div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Vacunas</label><input type="checkbox" id="showVaccines" class="w-5 h-5 text-blue-600 rounded" ${petState.showVaccines ? 'checked' : ''}></div>
+                  <input type="text" id="vaccines" value="${petState.vaccines || ''}" placeholder="Ej: Rabia, Parvovirus" class="w-full p-2 border rounded-lg">
+                </div>
+                <div>
+                  <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Últ. Desparasitación</label><input type="checkbox" id="showDeworming" class="w-5 h-5 text-blue-600 rounded" ${petState.showDeworming ? 'checked' : ''}></div>
+                  <input type="date" id="lastDeworming" value="${petState.lastDeworming || ''}" class="w-full p-2 border rounded-lg">
+                </div>
               </div>
             </div>
 
-            <div><label class="block font-medium mb-1">Descripción</label><textarea id="petDesc" class="w-full p-3 border rounded-xl h-20" placeholder="Ej: Muy juguetón...">${petState.description || ''}</textarea></div>
-            <div><label class="block font-medium mb-1">🚨 Alertas Médicas</label><input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" placeholder="Ej: Alérgico al pollo" class="w-full p-3 border rounded-xl"></div>
-            <div><label class="block font-medium mb-1">WhatsApp</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl"><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" placeholder="Número" class="w-2/3 p-3 border rounded-xl"></div></div>
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="font-medium text-sm">Descripción</label>
+                <div class="flex items-center gap-2"><span class="text-xs text-gray-500">Mostrar en público</span><input type="checkbox" id="showDescription" class="w-5 h-5 text-blue-600 rounded" ${petState.showDescription !== false ? 'checked' : ''}></div>
+              </div>
+              <textarea id="petDesc" class="w-full p-3 border rounded-xl h-20" placeholder="Ej: Muy juguetón...">${petState.description || ''}</textarea>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-1">
+                <label class="font-medium text-sm">🚨 Alertas Médicas</label>
+                <div class="flex items-center gap-2"><span class="text-xs text-gray-500">Mostrar en público</span><input type="checkbox" id="showMedicalAlerts" class="w-5 h-5 text-blue-600 rounded" ${petState.showMedicalAlerts !== false ? 'checked' : ''}></div>
+              </div>
+              <input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" placeholder="Ej: Alérgico al pollo" class="w-full p-3 border rounded-xl">
+            </div>
+
+            <div><label class="block font-medium mb-1">WhatsApp (Obligatorio)</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl"><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" placeholder="Número" class="w-2/3 p-3 border rounded-xl"></div></div>
             <button onclick="savePublicProfile()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Perfil</button>
           </div>
         </div>
 
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
-          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white"><h2 class="text-xl font-bold">📋 Expediente Médico (Bitácora)</h2></div>
+          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white"><h2 class="text-xl font-bold">📋 Expediente Médico (Bitácora Privada)</h2></div>
           <div class="p-6 space-y-5">
             <div class="bg-slate-50 p-4 rounded-xl border">
               <h3 class="font-bold mb-3">➕ Agregar Evento</h3>
@@ -351,12 +324,15 @@
         species: document.getElementById('species').value, breed: document.getElementById('breed').value, sex: document.getElementById('sex').value,
         birthDate: document.getElementById('birthDate').value, weight: document.getElementById('weight').value, diet: document.getElementById('diet').value,
         color: document.getElementById('color').value, sterilized: document.getElementById('sterilized').value,
+        vaccines: document.getElementById('vaccines').value, lastDeworming: document.getElementById('lastDeworming').value,
         showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked,
         showSpecies: document.getElementById('showSpecies').checked, showBreed: document.getElementById('showBreed').checked,
         showSex: document.getElementById('showSex').checked, showBirthDate: document.getElementById('showBirthDate').checked,
         showAge: document.getElementById('showAge').checked, showWeight: document.getElementById('showWeight').checked,
         showDiet: document.getElementById('showDiet').checked, showColor: document.getElementById('showColor').checked,
-        showSterilized: document.getElementById('showSterilized').checked
+        showSterilized: document.getElementById('showSterilized').checked, showVaccines: document.getElementById('showVaccines').checked,
+        showDeworming: document.getElementById('showDeworming').checked, showDescription: document.getElementById('showDescription').checked,
+        showMedicalAlerts: document.getElementById('showMedicalAlerts').checked
       };
       await db.collection("pets").doc(tagId).update(data); 
       await db.collection("tags").doc(tagId).update({ phone: p }); 
