@@ -185,12 +185,20 @@
               <select id="regCountry" class="w-1/3 p-4 bg-slate-700 rounded-xl"><option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option></select>
               <input type="text" id="regPhone" placeholder="Número" class="w-2/3 p-4 bg-slate-700 rounded-xl">
             </div>
+            
+            <div class="flex items-start gap-2 text-left">
+              <input type="checkbox" id="acceptTerms" class="w-5 h-5 mt-1 text-blue-600 rounded">
+              <label for="acceptTerms" class="text-xs text-slate-400">He leído y acepto los <a href="terminos.html" target="_blank" class="text-blue-400 underline">Términos de Servicio</a> y la <a href="privacidad.html" target="_blank" class="text-blue-400 underline">Política de Privacidad</a>. Autorizo que mi WhatsApp sea visible para quien escanee esta medalla.</label>
+            </div>
+            
             <button onclick="claimProfile('${tagId}', '${message}')" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">Reclamar Perfil</button>
           </div>
         </div>`;
     }
 
     window.claimProfile = async function(tagId, message) {
+      if(!document.getElementById('acceptTerms').checked) return alert("Debes aceptar los Términos y la Política de Privacidad para continuar.");
+      
       const email = document.getElementById('regEmail').value, pass = document.getElementById('regPass').value;
       const phone = document.getElementById('regCountry').value + document.getElementById('regPhone').value;
       if(!document.getElementById('regPhone').value) return alert("Ingresa tu número.");
