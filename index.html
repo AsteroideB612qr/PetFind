@@ -28,7 +28,7 @@
   </div>
 
   <!-- VISTA DEL PANEL -->
-  <div id="adminView" class="hidden max-w-4xl mx-auto">
+  <div id="adminView" class="hidden max-w-5xl mx-auto">
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
       <img src="logo.png" alt="PetFind" class="h-16">
       <div class="flex gap-2 w-full md:w-auto">
@@ -64,14 +64,14 @@
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
-      <div class="space-y-5">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básico</option><option value="premium">Premium</option></select></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1" class="w-full p-3 border rounded-xl text-base"></div>
-        <button onclick="createTag()" class="w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla</button>
+        <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
       </div>
+      <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla y QR</button>
     </div>
 
-    <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-gray-100">
+    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
       <div class="flex justify-between items-center mb-6">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario</h2>
         <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄 Actualizar</button>
@@ -235,16 +235,24 @@
           const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrLink}`;
           const planColor = planTag === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
           
-          let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", payBadge = "", extraBtns = "", alertBadge = "";
+          let subStatus = "N/A", subColor = "bg-gray-100", payBadge = "", alertBadge = "";
+          let actionsHTML = "";
+          
+          // Botón通用: Ver QR
+          actionsHTML += `<button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Ver QR</button>`;
           
           if(planTag === 'basic') {
             subStatus = "Plan Básico"; subColor = "bg-gray-100 text-gray-700";
+            
+            actionsHTML += `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">✏️ WhatsApp</button>`;
+            
+            actionsHTML += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬆️ Subir a Premium</button>`;
+            
             if(tag.phone) {
-              // Botón para ofrecer premium por WhatsApp (solo si ya tiene teléfono asignado)
-              extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🛍️ Ofrecer Premium</a>`;
+              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🛍️ Ofrecer Premium</a>`;
+            } else {
+              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">N/A</div>`;
             }
-            // Botón para que el admin lo suba a premium manualmente
-            extraBtns += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬆️ Subir a Premium</button>`;
             
           } else if(tag.claimed) {
             let daysLeft = null;
@@ -254,39 +262,71 @@
                 subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700";
                 daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
                 if(daysLeft <= 5) {
-                  alertBadge = `<span class="text-xs bg-orange-200 text-orange-700 px-2 py-1 rounded-full ml-2 animate-pulse">⚠️ Vence en ${daysLeft}d</span>`;
-                  extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de PetFind vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🔔 Recordar Pago</a>`;
+                  alertBadge = `<span class="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full ml-1 animate-pulse">⚠️ ${daysLeft}d</span>`;
                 }
               } else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
             } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
 
-            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">Pago Pendiente</span>`;
-            else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
-            else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
+            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-0.5 rounded-full ml-1 animate-pulse">Pago Pendiente</span>`;
+            else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-1">Aprobado</span>`;
+            else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-0.5 rounded-full ml-1">Rechazado</span>`;
 
             const vCount = tag.vouchers ? tag.vouchers.length : 0;
-            if(vCount > 0) extraBtns += `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🧾 Ver Recibos (${vCount})</button>`;
+            if(vCount > 0) {
+              actionsHTML += `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 relative">🧾 Recibos (${vCount})</button>`;
+            } else {
+              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Sin Recibos</div>`;
+            }
             
-            subButtons = `<div class="col-span-2 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg"><button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-2 rounded-md text-xs font-bold">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-2 rounded-md text-xs font-bold">+30d</button></div>`;
+            if(daysLeft !== null && daysLeft <= 5) {
+              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de PetFind vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🔔 Recordar Pago</a>`;
+            } else {
+              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Al día</div>`;
+            }
+
+            actionsHTML += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬇️ Bajar a Básico</button>`;
             
-            extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬇️ Bajar a Básico</button>`;
+            actionsHTML += `<div class="col-span-2 md:col-span-4 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg mt-1">
+              <button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-30d</button>
+              <button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-1d</button>
+              <button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-1.5 rounded-md text-xs font-bold">+1d</button>
+              <button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-1.5 rounded-md text-xs font-bold">+30d</button>
+            </div>`;
+            
           } else {
-            // Premium pero no reclamado
+            // Premium no reclamado
             subStatus = "Pendiente Reclamo"; subColor = "bg-gray-100 text-gray-700";
-            extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬇️ Bajar a Básico</button>`;
+            actionsHTML += `<div class="col-span-2 md:col-span-3 text-gray-500 text-sm text-center py-2 bg-slate-50 rounded-lg font-medium">Pendiente de Reclamo por Dueño</div>`;
+            actionsHTML += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬇️ Bajar</button>`;
           }
           
+          actionsHTML += `<button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-bold col-span-2 md:col-span-4 flex items-center justify-center gap-1 mt-1">🗑️ Eliminar Medalla</button>`;
+          
           list.innerHTML += `
-            <div class="flex flex-col p-4 bg-gray-50 rounded-xl border">
-              <div class="flex flex-col mb-2 gap-1"><div class="flex justify-between items-center"><p class="font-bold text-gray-800 text-base">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${planTag.toUpperCase()}</span></div>${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full w-fit">Reclamado</span>' : ''}</div>
-              <p class="text-sm font-mono font-bold text-blue-600 mb-1">🛡️ ${doc.id}</p>
-              <p class="text-sm text-gray-500 mb-2">📞 ${tag.phone || 'Sin asignar'}</p>
-              <div class="mb-3"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span> ${payBadge} ${alertBadge}</div>
-              <div class="grid grid-cols-2 gap-2 mt-auto">
-                <button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold">Ver QR / Link</button>
-                ${subButtons} ${extraBtns}
-                ${planTag === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">Asignar WhatsApp</button>` : ''}
-                <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🗑️ Eliminar</button>
+            <div class="flex flex-col p-3 bg-white rounded-xl border shadow-sm">
+              <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <p class="font-bold text-gray-800 text-base">${tag.petName || 'Sin nombre'}</p>
+                  <span class="text-xs px-2 py-0.5 rounded-full font-bold ${planColor}">${planTag.toUpperCase()}</span>
+                  ${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full">Reclamado</span>' : ''}
+                </div>
+              </div>
+              
+              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3 border-b pb-2">
+                <span class="font-mono font-bold text-blue-600 truncate">🛡️ ${doc.id}</span>
+                <span class="text-gray-500 text-right truncate">📞 ${tag.phone || 'Sin asignar'}</span>
+              </div>
+              
+              <div class="flex justify-between items-center mb-3 flex-wrap gap-1">
+                <div class="flex gap-1 flex-wrap">
+                  <span class="text-xs px-2 py-0.5 rounded-full font-bold ${subColor}">${subStatus}</span>
+                  ${payBadge}
+                </div>
+                ${alertBadge}
+              </div>
+              
+              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                ${actionsHTML}
               </div>
             </div>`;
         });
