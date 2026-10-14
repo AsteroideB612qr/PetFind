@@ -229,14 +229,17 @@
         if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
+          // BUG FIX: Si una medalla vieja no tiene plan, asumimos que es 'basic'
+          const planTag = tag.plan || 'basic';
+          
           const qrLink = `https://petfind-omega.vercel.app/scan.html?id=${doc.id}`;
           const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrLink}`;
-          const planColor = tag.plan === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
+          const planColor = planTag === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
           
           let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", payBadge = "", extraBtns = "", alertBadge = "";
           
           if(tag.claimed) {
-            if(tag.plan === 'premium') {
+            if(planTag === 'premium') {
               let daysLeft = null;
               if(tag.subscriptionExpires) {
                 const exp = new Date(tag.subscriptionExpires);
@@ -269,14 +272,14 @@
           
           list.innerHTML += `
             <div class="flex flex-col p-4 bg-gray-50 rounded-xl border">
-              <div class="flex flex-col mb-2 gap-1"><div class="flex justify-between items-center"><p class="font-bold text-gray-800 text-base">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${tag.plan.toUpperCase()}</span></div>${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full w-fit">Reclamado</span>' : ''}</div>
+              <div class="flex flex-col mb-2 gap-1"><div class="flex justify-between items-center"><p class="font-bold text-gray-800 text-base">${tag.petName || 'Sin nombre'}</p><span class="text-xs px-2 py-1 rounded-full font-bold ${planColor}">${planTag.toUpperCase()}</span></div>${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full w-fit">Reclamado</span>' : ''}</div>
               <p class="text-sm font-mono font-bold text-blue-600 mb-1">🛡️ ${doc.id}</p>
               <p class="text-sm text-gray-500 mb-2">📞 ${tag.phone || 'Sin asignar'}</p>
               <div class="mb-3"><span class="text-xs px-2 py-1 rounded-full font-bold ${subColor}">${subStatus}</span> ${payBadge} ${alertBadge}</div>
               <div class="grid grid-cols-2 gap-2 mt-auto">
                 <button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold">Ver QR / Link</button>
                 ${subButtons} ${extraBtns}
-                ${!tag.claimed && tag.plan === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">Asignar WhatsApp</button>` : ''}
+                ${!tag.claimed && planTag === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">Asignar WhatsApp</button>` : ''}
                 <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🗑️ Eliminar</button>
               </div>
             </div>`;
