@@ -74,7 +74,10 @@
     </div>
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl border border-gray-100">
-      <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">📋 Inventario (En tiempo real)</h2>
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario</h2>
+        <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄 Actualizar</button>
+      </div>
       <div id="tagsList" class="space-y-4"></div>
     </div>
   </div>
@@ -181,20 +184,6 @@
       alert("Mensaje actualizado en todas las medallas.");
     }
 
-    // --- MODAL QR ---
-    window.showQR = function(link, imgUrl) {
-      currentQRLink = link;
-      document.getElementById('qrImg').src = imgUrl;
-      document.getElementById('qrLink').innerText = link;
-      document.getElementById('qrModal').classList.remove('hidden');
-      document.getElementById('qrModal').classList.add('flex');
-    }
-    window.closeQRModal = function() { document.getElementById('qrModal').classList.add('hidden'); }
-    window.copyQRLink = function() {
-      navigator.clipboard.writeText(currentQRLink).then(() => alert('¡Link copiado al portapapeles!'));
-    }
-
-    // --- MODAL PHONE ---
     window.editPhone = function(tagId, currentPhone) {
       currentPhoneTagId = tagId;
       document.getElementById('phoneCountry').value = currentPhone ? currentPhone.substring(0, 2) : "51";
@@ -209,7 +198,6 @@
       alert("WhatsApp actualizado."); closePhoneModal();
     }
 
-    // --- VOUCHERS ---
     window.showVouchers = function(tagId) {
       currentVoucherTagId = tagId;
       db.collection("tags").doc(tagId).get().then(doc => {
@@ -280,7 +268,6 @@
       }
     }
 
-    // --- TAGS ---
     function generatePlateId() { return 'PF' + Math.floor(100000 + Math.random() * 900000); }
 
     window.createTag = async function() {
@@ -293,8 +280,9 @@
         const page = planType === 'basic' ? 'go.html' : 'scan.html';
         const link = `https://petfind-omega.vercel.app/${page}?id=${newId}`;
         const imgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`;
-        showQR(link, imgUrl); // Mostrar modal automáticamente
+        showQR(link, imgUrl);
         document.getElementById('petName').value = "";
+        listenTags();
       });
     }
 
@@ -358,7 +346,21 @@
               </div>
             </div>`;
         });
+      }).catch((error) => {
+        list.innerHTML = "<p class='text-red-400 text-center'>Error al cargar.</p>";
       });
+    }
+
+    window.showQR = function(link, imgUrl) {
+      currentQRLink = link;
+      document.getElementById('qrImg').src = imgUrl;
+      document.getElementById('qrLink').innerText = link;
+      document.getElementById('qrModal').classList.remove('hidden');
+      document.getElementById('qrModal').classList.add('flex');
+    }
+    window.closeQRModal = function() { document.getElementById('qrModal').classList.add('hidden'); }
+    window.copyQRLink = function() {
+      navigator.clipboard.writeText(currentQRLink).then(() => alert('¡Link copiado al portapapeles!'));
     }
 
     window.adjustDays = async function(tagId, days) {
@@ -367,8 +369,9 @@
       if(current < new Date()) current = new Date();
       current.setDate(current.getDate() + days);
       await ref.update({ subscriptionExpires: current.toISOString() });
+      listenTags();
     }
-    window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); } }
+    window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } }
   </script>
 </body>
 </html>
