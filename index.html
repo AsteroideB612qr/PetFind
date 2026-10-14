@@ -9,9 +9,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
   <script>
-    // === CAMBIA ESTO POR TU CORREO DE ADMIN ===
-    const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
-    // ==========================================
+    const ADMIN_EMAIL = "actvosonlineqr@gmail.com"; 
   </script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4 md:p-8">
@@ -204,14 +202,12 @@
       let newId = generatePlateId(); if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
       db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date(), vouchers: [] })
       .then(() => {
-        // El QR SIEMPRE apunta a scan.html para poder cambiar de plan sin reimprimir
         const link = `https://petfind-omega.vercel.app/scan.html?id=${newId}`;
         showQR(link, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`);
         document.getElementById('petName').value = ""; listenTags();
       });
     }
 
-    // Cambiar de plan
     window.changePlan = async function(tagId, newPlan) {
       if(newPlan === 'basic') {
         if(!confirm("¿Bajar a Básico? Se borrará el perfil de la mascota y el QR irá directo a WhatsApp.")) return;
@@ -264,7 +260,7 @@
               subButtons = `<div class="col-span-2 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg"><button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-2 rounded-md text-xs font-bold">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-2 rounded-md text-xs font-bold">+30d</button></div>`;
               
               extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold">⬇️ Bajar a Básico</button>`;
-            } else { // Basic
+            } else { 
               subStatus = "Plan Básico"; subColor = "bg-gray-100 text-gray-700";
               extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm font-bold">🛍️ Ofrecer Premium</a>`;
               extraBtns += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold">⬆️ Subir a Premium</button>`;
@@ -285,7 +281,10 @@
               </div>
             </div>`;
         });
-      }).catch(() => list.innerHTML = "<p class='text-red-400 text-center'>Error.</p>");
+      }).catch((error) => {
+        console.error("Error Firebase: ", error);
+        list.innerHTML = "<p class='text-red-400 text-center p-4 bg-red-50 rounded-xl text-sm'>" + error.message + "</p>";
+      });
     }
 
     window.showQR = function(link, imgUrl) { currentQRLink = link; document.getElementById('qrImg').src = imgUrl; document.getElementById('qrLink').innerText = link; document.getElementById('qrModal').classList.remove('hidden'); document.getElementById('qrModal').classList.add('flex'); }
