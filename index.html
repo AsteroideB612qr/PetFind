@@ -298,11 +298,11 @@
       });
     }
 
-    // LISTENER EN TIEMPO REAL
+    // CARGA BAJO DEMANDA (Optimizado para cuota gratuita)
     function listenTags() {
       const list = document.getElementById('tagsList');
       list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando...</p>";
-      db.collection("tags").orderBy("createdAt", "desc").onSnapshot((querySnapshot) => {
+      db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
         list.innerHTML = "";
         if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
