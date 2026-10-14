@@ -229,7 +229,6 @@
         if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
-          // BUG FIX: Si una medalla vieja no tiene plan, asumimos que es 'basic'
           const planTag = tag.plan || 'basic';
           
           const qrLink = `https://petfind-omega.vercel.app/scan.html?id=${doc.id}`;
@@ -238,36 +237,43 @@
           
           let subStatus = "N/A", subColor = "bg-gray-100", subButtons = "", payBadge = "", extraBtns = "", alertBadge = "";
           
-          if(tag.claimed) {
-            if(planTag === 'premium') {
-              let daysLeft = null;
-              if(tag.subscriptionExpires) {
-                const exp = new Date(tag.subscriptionExpires);
-                if(exp > new Date()) { 
-                  subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700";
-                  daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
-                  if(daysLeft <= 5) {
-                    alertBadge = `<span class="text-xs bg-orange-200 text-orange-700 px-2 py-1 rounded-full ml-2 animate-pulse">⚠️ Vence en ${daysLeft}d</span>`;
-                    extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de PetFind vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm font-bold">🔔 Recordar Pago</a>`;
-                  }
-                } else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
-              } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
-
-              if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">Pago Pendiente</span>`;
-              else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
-              else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
-
-              const vCount = tag.vouchers ? tag.vouchers.length : 0;
-              if(vCount > 0) extraBtns += `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg text-sm font-bold">🧾 Recibos (${vCount})</button>`;
-              
-              subButtons = `<div class="col-span-2 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg"><button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-2 rounded-md text-xs font-bold">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-2 rounded-md text-xs font-bold">+30d</button></div>`;
-              
-              extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold">⬇️ Bajar a Básico</button>`;
-            } else { 
-              subStatus = "Plan Básico"; subColor = "bg-gray-100 text-gray-700";
-              extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm font-bold">🛍️ Ofrecer Premium</a>`;
-              extraBtns += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold">⬆️ Subir a Premium</button>`;
+          if(planTag === 'basic') {
+            subStatus = "Plan Básico"; subColor = "bg-gray-100 text-gray-700";
+            if(tag.phone) {
+              // Botón para ofrecer premium por WhatsApp (solo si ya tiene teléfono asignado)
+              extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🛍️ Ofrecer Premium</a>`;
             }
+            // Botón para que el admin lo suba a premium manualmente
+            extraBtns += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬆️ Subir a Premium</button>`;
+            
+          } else if(tag.claimed) {
+            let daysLeft = null;
+            if(tag.subscriptionExpires) {
+              const exp = new Date(tag.subscriptionExpires);
+              if(exp > new Date()) { 
+                subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700";
+                daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
+                if(daysLeft <= 5) {
+                  alertBadge = `<span class="text-xs bg-orange-200 text-orange-700 px-2 py-1 rounded-full ml-2 animate-pulse">⚠️ Vence en ${daysLeft}d</span>`;
+                  extraBtns += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de PetFind vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🔔 Recordar Pago</a>`;
+                }
+              } else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
+            } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
+
+            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-1 rounded-full ml-2 animate-pulse">Pago Pendiente</span>`;
+            else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-1 rounded-full ml-2">Aprobado</span>`;
+            else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-1 rounded-full ml-2">Rechazado</span>`;
+
+            const vCount = tag.vouchers ? tag.vouchers.length : 0;
+            if(vCount > 0) extraBtns += `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🧾 Ver Recibos (${vCount})</button>`;
+            
+            subButtons = `<div class="col-span-2 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg"><button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-30d</button><button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-2 rounded-md text-xs font-bold">-1d</button><button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-2 rounded-md text-xs font-bold">+1d</button><button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-2 rounded-md text-xs font-bold">+30d</button></div>`;
+            
+            extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬇️ Bajar a Básico</button>`;
+          } else {
+            // Premium pero no reclamado
+            subStatus = "Pendiente Reclamo"; subColor = "bg-gray-100 text-gray-700";
+            extraBtns += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">⬇️ Bajar a Básico</button>`;
           }
           
           list.innerHTML += `
@@ -279,7 +285,7 @@
               <div class="grid grid-cols-2 gap-2 mt-auto">
                 <button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-bold">Ver QR / Link</button>
                 ${subButtons} ${extraBtns}
-                ${!tag.claimed && planTag === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">Asignar WhatsApp</button>` : ''}
+                ${planTag === 'basic' ? `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">Asignar WhatsApp</button>` : ''}
                 <button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm font-bold col-span-2">🗑️ Eliminar</button>
               </div>
             </div>`;
