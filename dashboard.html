@@ -132,8 +132,12 @@
           <a href="landing.html" target="_blank"><img src="logo.png" alt="PetFind" class="h-20 mb-2 cursor-pointer hover:opacity-80 transition"></a>
           <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>${logoutBtn}
         </div>
-        <div id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6"></div>
         
+        <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <summary id="membershipSummary" class="p-6 select-none font-bold text-lg flex justify-between items-center w-full"></summary>
+          <div id="membershipContent" class="p-6 pt-0 space-y-4"></div>
+        </details>
+
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center"><h2 class="text-xl font-bold">Perfil de la Mascota</h2><span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Placa: ${isDemo ? 'DEMO123' : tagId}</span></div>
           <div class="p-6 space-y-5">
@@ -141,7 +145,7 @@
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Foto</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}></div></div><div class="flex flex-col items-center mb-4 mt-2"><img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white"><input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)"><button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button></div></div>
             
             <details class="bg-slate-50 p-4 rounded-xl border">
-              <summary class="font-bold text-sm text-slate-600 select-none">📋 Información Básica (Toque para expandir)</summary>
+              <summary class="font-bold text-sm text-slate-600 select-none">📋 Información Básica y Médica</summary>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Especie</label><input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}></div><input type="text" id="species" value="${petState.species || ''}" class="w-full p-2 border rounded-lg"></div>
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Raza</label><input type="checkbox" id="showBreed" class="w-5 h-5 text-blue-600 rounded" ${petState.showBreed ? 'checked' : ''}></div><input type="text" id="breed" value="${petState.breed || ''}" class="w-full p-2 border rounded-lg"></div>
@@ -154,6 +158,16 @@
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Esterilizado</label><input type="checkbox" id="showSterilized" class="w-5 h-5 text-blue-600 rounded" ${petState.showSterilized ? 'checked' : ''}></div><select id="sterilized" class="w-full p-2 border rounded-lg"><option value="Sí" ${petState.sterilized === 'Sí' ? 'selected' : ''}>Sí</option><option value="No" ${petState.sterilized === 'No' ? 'selected' : ''}>No</option></select></div>
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Vacunas</label><input type="checkbox" id="showVaccines" class="w-5 h-5 text-blue-600 rounded" ${petState.showVaccines ? 'checked' : ''}></div><input type="text" id="vaccines" value="${petState.vaccines || ''}" class="w-full p-2 border rounded-lg"></div>
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Últ. Desparasitación</label><input type="checkbox" id="showDeworming" class="w-5 h-5 text-blue-600 rounded" ${petState.showDeworming ? 'checked' : ''}></div><input type="date" id="lastDeworming" value="${petState.lastDeworming || ''}" class="w-full p-2 border rounded-lg"></div>
+              </div>
+              
+              <div class="mt-4">
+                <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Descripción</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showDescription" class="w-5 h-5 text-blue-600 rounded" ${petState.showDescription !== false ? 'checked' : ''}></div></div>
+                <textarea id="petDesc" class="w-full p-3 border rounded-xl h-20">${petState.description || ''}</textarea>
+              </div>
+              <div class="mt-4">
+                <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">🚨 Alertas Médicas</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showMedicalAlerts" class="w-5 h-5 text-blue-600 rounded" ${petState.showMedicalAlerts !== false ? 'checked' : ''}></div></div>
+                <input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" class="w-full p-3 border rounded-xl">
+                <p class="text-xs text-gray-400 mt-1">⚠️ PetFind no se hace responsable por decisiones médicas tomadas por terceros.</p>
               </div>
             </details>
 
@@ -168,8 +182,6 @@
               </div>
             </details>
 
-            <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Descripción</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showDescription" class="w-5 h-5 text-blue-600 rounded" ${petState.showDescription !== false ? 'checked' : ''}></div></div><textarea id="petDesc" class="w-full p-3 border rounded-xl h-20">${petState.description || ''}</textarea></div>
-            <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">🚨 Alertas Médicas</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showMedicalAlerts" class="w-5 h-5 text-blue-600 rounded" ${petState.showMedicalAlerts !== false ? 'checked' : ''}></div></div><input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" class="w-full p-3 border rounded-xl"><p class="text-xs text-gray-400 mt-1">⚠️ PetFind no se hace responsable por decisiones médicas tomadas por terceros.</p></div>
             <div><label class="block font-medium mb-1">WhatsApp Dueño</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl"><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" class="w-2/3 p-3 border rounded-xl"></div></div>
             <button onclick="savePublicProfile()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Perfil</button>
           </div>
@@ -178,7 +190,6 @@
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex justify-between items-center"><h2 class="text-xl font-bold">📋 Expediente Médico</h2><button onclick="sendHistoryToVet()" class="bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-bold hover:bg-white/30">👨‍⚕️ Enviar al Vet</button></div>
           <div class="p-6 space-y-4">
-            
             <div class="bg-slate-50 p-4 rounded-xl border"><h3 class="font-bold mb-3 text-sm text-slate-600">➕ Agregar Evento</h3><div class="grid grid-cols-2 gap-3"><select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option><option>Otro</option></select><input type="text" id="evName" class="w-full p-2 border rounded-lg" placeholder="Nombre"><input type="date" id="evDate" class="w-full p-2 border rounded-lg"><select id="evStatus" class="p-2 border rounded-lg w-full"><option>Pendiente</option><option>Realizado</option></select></div><button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg">Agregar Evento</button></div>
             
             <details>
@@ -201,7 +212,6 @@
               </summary>
               <div id="notesList" class="space-y-2 mt-3"></div>
             </details>
-            
           </div>
         </div>
         <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
@@ -216,16 +226,28 @@
       const expDate = tagState.subscriptionExpires ? new Date(tagState.subscriptionExpires) : null;
       const isActive = expDate && expDate > new Date();
       const payStatus = tagState.paymentStatus || 'none';
+      
+      const summaryText = isActive 
+        ? `✅ Membresía Activa ${isDemo ? '(Demo)' : '- Vence el ' + expDate.toLocaleDateString()}` 
+        : `⚠️ Membresía Vencida`;
+      const summaryColor = isActive ? 'text-green-600' : 'text-red-600';
+      
+      document.getElementById('membershipSummary').className = `p-6 select-none font-bold text-lg flex justify-between items-center w-full ${summaryColor}`;
+      document.getElementById('membershipSummary').innerHTML = `<span>${summaryText}</span><span class="text-xs text-slate-400 font-normal">Toca para gestionar</span>`;
+
       const paymentForm = `<div class="text-center space-y-3 border-t border-slate-200 pt-4 mt-4"><p class="text-gray-600 font-medium">Realiza el pago de S/ ${settingsState.subPrice || '14.90'} a:</p><div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center"><div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div><button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button></div><input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)"><button id="voucherUploadBtn" onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium">🧾 Adjuntar Recibo</button><div id="voucherStatus" class="text-green-600 font-bold text-sm hidden">✅ Recibo cargado</div><button id="voucherSendBtn" onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold opacity-50 pointer-events-none">Solicitar Activación</button></div>`;
+      
       let membershipHTML = '';
       if (isActive) {
-        membershipHTML = `<p class="text-green-600 font-bold text-center p-6">✅ ¡Tu mascota está protegida! ${isDemo ? '(Demo)' : `Vence el ${expDate.toLocaleDateString()}`}</p><div class="px-6 pb-6"><p class="text-sm text-gray-500 text-center mb-4">¿Quieres adelantar tu pago? Hazlo aquí:</p>${paymentForm}</div>`;
-      } else if (payStatus === 'pending') { membershipHTML = `<p class="text-blue-600 font-bold text-center p-6 animate-pulse">⏳ Recibo enviado, esperando revisión...</p>`; } 
-      else if (payStatus === 'approved') { membershipHTML = `<p class="text-blue-600 font-bold text-center p-6">✅ Pago aprobado. Activando suscripción...</p>`; } 
-      else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-600 font-bold text-center mb-4 pt-6">Tu membresía ha vencido.</p><p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><div class="px-6 pb-6"><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}</div>`; } 
-      else { membershipHTML = `<p class="text-red-600 font-bold text-center mb-4 pt-6">Tu membresía ha vencido.</p><div class="px-6 pb-6">${paymentForm}</div>`; }
+        membershipHTML = `<p class="text-sm text-gray-500 text-center mb-4">¿Quieres adelantar tu pago para no perder días? Hazlo aquí:</p>${paymentForm}`;
+      } else if (payStatus === 'pending') { membershipHTML = `<p class="text-blue-600 font-bold text-center animate-pulse">⏳ Recibo enviado, esperando revisión...</p>`; } 
+      else if (payStatus === 'approved') { membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu suscripción en breve.</p>`; } 
+      else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}`; } 
+      else { membershipHTML = `${paymentForm}`; }
+      
       if(!isDemo) { membershipHTML += `<div class="text-center mt-6 border-t border-slate-200 pt-6"><button onclick="downgradeToBasic()" class="text-red-500 hover:text-red-700 text-sm font-bold">⚠️ Bajar a Plan Básico (Se perderá el perfil)</button></div>`; }
-      document.getElementById('membershipBox').innerHTML = `<div class="p-6 bg-gradient-to-r from-yellow-500 to-orange-600 text-white"><h2 class="text-xl font-bold">👑 Membresía PetFind</h2></div><div class="p-6 space-y-4">${membershipHTML}</div>`;
+      
+      document.getElementById('membershipContent').innerHTML = membershipHTML;
     }
 
     window.downgradeToBasic = async function() {
