@@ -8,6 +8,12 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <style>
+    summary { list-style: none; cursor: pointer; display: flex; align-items: center; }
+    summary::-webkit-details-marker { display: none; }
+    summary::before { content: ''; display: inline-block; width: 0; height: 0; border-left: 6px solid #475569; border-top: 5px solid transparent; border-bottom: 5px solid transparent; margin-right: 8px; transition: transform 0.2s; }
+    details[open] summary::before { transform: rotate(90deg); }
+  </style>
 </head>
 <body class="bg-slate-100 min-h-screen pb-20">
   <div id="content" class="max-w-3xl mx-auto p-5">
@@ -104,7 +110,6 @@
     }
     initApp();
 
-    // AUTO-GUARDADO SILENCIOSO
     window.saveMedicalData = async function() {
       if(isDemo) return;
       try {
@@ -128,35 +133,40 @@
           <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>${logoutBtn}
         </div>
         <div id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6"></div>
+        
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center"><h2 class="text-xl font-bold">Perfil de la Mascota</h2><span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Placa: ${isDemo ? 'DEMO123' : tagId}</span></div>
           <div class="p-6 space-y-5">
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Nombre</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}></div></div><input type="text" id="petName" value="${petState.name || ''}" class="w-full p-3 border rounded-xl"></div>
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Foto</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}></div></div><div class="flex flex-col items-center mb-4 mt-2"><img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white"><input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)"><button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button></div></div>
-            <div class="bg-slate-50 p-4 rounded-xl border"><h3 class="font-bold mb-3 text-sm text-slate-600">📋 Información Básica</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Especie</label><input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}></div><input type="text" id="species" value="${petState.species || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Raza</label><input type="checkbox" id="showBreed" class="w-5 h-5 text-blue-600 rounded" ${petState.showBreed ? 'checked' : ''}></div><input type="text" id="breed" value="${petState.breed || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Sexo</label><input type="checkbox" id="showSex" class="w-5 h-5 text-blue-600 rounded" ${petState.showSex ? 'checked' : ''}></div><select id="sex" class="w-full p-2 border rounded-lg"><option value="Macho" ${petState.sex === 'Macho' ? 'selected' : ''}>Macho</option><option value="Hembra" ${petState.sex === 'Hembra' ? 'selected' : ''}>Hembra</option></select></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">F. Nacimiento</label><input type="checkbox" id="showBirthDate" class="w-5 h-5 text-blue-600 rounded" ${petState.showBirthDate ? 'checked' : ''}></div><input type="date" id="birthDate" value="${petState.birthDate || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Edad (Auto)</label><input type="checkbox" id="showAge" class="w-5 h-5 text-blue-600 rounded" ${petState.showAge ? 'checked' : ''}></div><input type="text" value="${calculateAge(petState.birthDate) || 'Se calcula sola'}" disabled class="w-full p-2 border rounded-lg bg-slate-100 text-slate-500"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Último Peso</label><input type="checkbox" id="showWeight" class="w-5 h-5 text-blue-600 rounded" ${petState.showWeight ? 'checked' : ''}></div><input type="text" id="weight" value="${petState.weight || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Alimentación</label><input type="checkbox" id="showDiet" class="w-5 h-5 text-blue-600 rounded" ${petState.showDiet ? 'checked' : ''}></div><input type="text" id="diet" value="${petState.diet || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Color</label><input type="checkbox" id="showColor" class="w-5 h-5 text-blue-600 rounded" ${petState.showColor ? 'checked' : ''}></div><input type="text" id="color" value="${petState.color || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Esterilizado</label><input type="checkbox" id="showSterilized" class="w-5 h-5 text-blue-600 rounded" ${petState.showSterilized ? 'checked' : ''}></div><select id="sterilized" class="w-full p-2 border rounded-lg"><option value="Sí" ${petState.sterilized === 'Sí' ? 'selected' : ''}>Sí</option><option value="No" ${petState.sterilized === 'No' ? 'selected' : ''}>No</option></select></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Vacunas</label><input type="checkbox" id="showVaccines" class="w-5 h-5 text-blue-600 rounded" ${petState.showVaccines ? 'checked' : ''}></div><input type="text" id="vaccines" value="${petState.vaccines || ''}" class="w-full p-2 border rounded-lg"></div>
-              <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Últ. Desparasitación</label><input type="checkbox" id="showDeworming" class="w-5 h-5 text-blue-600 rounded" ${petState.showDeworming ? 'checked' : ''}></div><input type="date" id="lastDeworming" value="${petState.lastDeworming || ''}" class="w-full p-2 border rounded-lg"></div>
-            </div></div>
             
-            <div class="bg-green-50 p-4 rounded-xl border border-green-200">
-              <div class="flex justify-between items-center mb-3">
-                <h3 class="font-bold text-sm text-green-800">👨‍⚕️ Datos del Veterinario</h3>
-                <div class="flex items-center gap-2"><span class="text-xs text-gray-500">Mostrar en público</span><input type="checkbox" id="showVet" class="w-5 h-5 text-blue-600 rounded" ${petState.showVet ? 'checked' : ''}></div>
+            <details class="bg-slate-50 p-4 rounded-xl border">
+              <summary class="font-bold text-sm text-slate-600 select-none">📋 Información Básica (Toque para expandir)</summary>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Especie</label><input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}></div><input type="text" id="species" value="${petState.species || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Raza</label><input type="checkbox" id="showBreed" class="w-5 h-5 text-blue-600 rounded" ${petState.showBreed ? 'checked' : ''}></div><input type="text" id="breed" value="${petState.breed || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Sexo</label><input type="checkbox" id="showSex" class="w-5 h-5 text-blue-600 rounded" ${petState.showSex ? 'checked' : ''}></div><select id="sex" class="w-full p-2 border rounded-lg"><option value="Macho" ${petState.sex === 'Macho' ? 'selected' : ''}>Macho</option><option value="Hembra" ${petState.sex === 'Hembra' ? 'selected' : ''}>Hembra</option></select></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">F. Nacimiento</label><input type="checkbox" id="showBirthDate" class="w-5 h-5 text-blue-600 rounded" ${petState.showBirthDate ? 'checked' : ''}></div><input type="date" id="birthDate" value="${petState.birthDate || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Edad (Auto)</label><input type="checkbox" id="showAge" class="w-5 h-5 text-blue-600 rounded" ${petState.showAge ? 'checked' : ''}></div><input type="text" value="${calculateAge(petState.birthDate) || 'Se calcula sola'}" disabled class="w-full p-2 border rounded-lg bg-slate-100 text-slate-500"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Último Peso</label><input type="checkbox" id="showWeight" class="w-5 h-5 text-blue-600 rounded" ${petState.showWeight ? 'checked' : ''}></div><input type="text" id="weight" value="${petState.weight || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Alimentación</label><input type="checkbox" id="showDiet" class="w-5 h-5 text-blue-600 rounded" ${petState.showDiet ? 'checked' : ''}></div><input type="text" id="diet" value="${petState.diet || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Color</label><input type="checkbox" id="showColor" class="w-5 h-5 text-blue-600 rounded" ${petState.showColor ? 'checked' : ''}></div><input type="text" id="color" value="${petState.color || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Esterilizado</label><input type="checkbox" id="showSterilized" class="w-5 h-5 text-blue-600 rounded" ${petState.showSterilized ? 'checked' : ''}></div><select id="sterilized" class="w-full p-2 border rounded-lg"><option value="Sí" ${petState.sterilized === 'Sí' ? 'selected' : ''}>Sí</option><option value="No" ${petState.sterilized === 'No' ? 'selected' : ''}>No</option></select></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Vacunas</label><input type="checkbox" id="showVaccines" class="w-5 h-5 text-blue-600 rounded" ${petState.showVaccines ? 'checked' : ''}></div><input type="text" id="vaccines" value="${petState.vaccines || ''}" class="w-full p-2 border rounded-lg"></div>
+                <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Últ. Desparasitación</label><input type="checkbox" id="showDeworming" class="w-5 h-5 text-blue-600 rounded" ${petState.showDeworming ? 'checked' : ''}></div><input type="date" id="lastDeworming" value="${petState.lastDeworming || ''}" class="w-full p-2 border rounded-lg"></div>
               </div>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-                <div><label class="block text-xs font-medium mb-1 text-gray-600">Nombre del Vet</label><input type="text" id="vetName" value="${petState.vetName || ''}" placeholder="Ej: Dr. Pérez" class="w-full p-2 border rounded-lg"></div>
-                <div><label class="block text-xs font-medium mb-1 text-gray-600">WhatsApp del Vet</label><div class="flex gap-1"><select id="vetCountry" class="w-1/3 p-2 border rounded-lg"><option value="51" ${vetCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${vetCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${vetCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${vetCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${vetCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${vetCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${vetCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="vetPhone" value="${vetPhone}" placeholder="Número" class="w-2/3 p-2 border rounded-lg"></div></div>
+            </details>
+
+            <details class="bg-green-50 p-4 rounded-xl border border-green-200">
+              <summary class="font-bold text-sm text-green-800 select-none">👨‍⚕️ Datos del Veterinario</summary>
+              <div class="mt-4 space-y-4">
+                <div class="flex justify-between items-center mb-1"><label class="text-xs font-medium text-gray-600">Mostrar en perfil público</label><input type="checkbox" id="showVet" class="w-5 h-5 text-blue-600 rounded" ${petState.showVet ? 'checked' : ''}></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div><label class="block text-xs font-medium mb-1 text-gray-600">Nombre del Vet</label><input type="text" id="vetName" value="${petState.vetName || ''}" placeholder="Ej: Dr. Pérez" class="w-full p-2 border rounded-lg"></div>
+                  <div><label class="block text-xs font-medium mb-1 text-gray-600">WhatsApp del Vet</label><div class="flex gap-1"><select id="vetCountry" class="w-1/3 p-2 border rounded-lg"><option value="51" ${vetCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${vetCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${vetCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${vetCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${vetCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${vetCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${vetCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="vetPhone" value="${vetPhone}" placeholder="Número" class="w-2/3 p-2 border rounded-lg"></div></div>
+                </div>
               </div>
-            </div>
+            </details>
 
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Descripción</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showDescription" class="w-5 h-5 text-blue-600 rounded" ${petState.showDescription !== false ? 'checked' : ''}></div></div><textarea id="petDesc" class="w-full p-3 border rounded-xl h-20">${petState.description || ''}</textarea></div>
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">🚨 Alertas Médicas</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showMedicalAlerts" class="w-5 h-5 text-blue-600 rounded" ${petState.showMedicalAlerts !== false ? 'checked' : ''}></div></div><input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" class="w-full p-3 border rounded-xl"><p class="text-xs text-gray-400 mt-1">⚠️ PetFind no se hace responsable por decisiones médicas tomadas por terceros.</p></div>
@@ -167,20 +177,31 @@
         
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex justify-between items-center"><h2 class="text-xl font-bold">📋 Expediente Médico</h2><button onclick="sendHistoryToVet()" class="bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-bold hover:bg-white/30">👨‍⚕️ Enviar al Vet</button></div>
-          <div class="p-6 space-y-5">
-            <div class="bg-slate-50 p-4 rounded-xl border"><h3 class="font-bold mb-3">➕ Agregar Evento (Vacuna, Cita, etc.)</h3><div class="grid grid-cols-2 gap-3"><select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option><option>Otro</option></select><input type="text" id="evName" class="w-full p-2 border rounded-lg" placeholder="Nombre"><input type="date" id="evDate" class="w-full p-2 border rounded-lg"><select id="evStatus" class="p-2 border rounded-lg w-full"><option>Pendiente</option><option>Realizado</option></select></div><button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg">Agregar Evento</button></div>
-            <div><h3 class="font-bold mb-3">📅 Historial de Eventos</h3><div id="eventsList" class="space-y-2"></div></div>
+          <div class="p-6 space-y-4">
             
-            <div class="border-t pt-4 mt-4">
-              <div class="flex justify-between items-center mb-3"><h3 class="font-bold">💊 Recetas Médicas</h3><button onclick="openTextModal('rx', null)" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">+ Nueva</button></div>
-              <div id="rxList" class="space-y-2"></div>
-            </div>
+            <div class="bg-slate-50 p-4 rounded-xl border"><h3 class="font-bold mb-3 text-sm text-slate-600">➕ Agregar Evento</h3><div class="grid grid-cols-2 gap-3"><select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option><option>Otro</option></select><input type="text" id="evName" class="w-full p-2 border rounded-lg" placeholder="Nombre"><input type="date" id="evDate" class="w-full p-2 border rounded-lg"><select id="evStatus" class="p-2 border rounded-lg w-full"><option>Pendiente</option><option>Realizado</option></select></div><button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg">Agregar Evento</button></div>
             
-            <div class="border-t pt-4 mt-4">
-              <div class="flex justify-between items-center mb-3"><h3 class="font-bold">📝 Notas Privadas</h3><button onclick="openTextModal('note', null)" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">+ Nueva</button></div>
-              <div id="notesList" class="space-y-2"></div>
-            </div>
-            <p class="text-xs text-gray-400 text-center pt-4">ℹ️ Los eventos, recetas y notas se guardan automáticamente en la nube al agregarlos o editarlos.</p>
+            <details>
+              <summary class="font-bold text-slate-700 bg-slate-100 p-3 rounded-xl w-full select-none">📅 Historial de Eventos</summary>
+              <div id="eventsList" class="space-y-2 mt-3"></div>
+            </details>
+            
+            <details>
+              <summary class="font-bold text-slate-700 bg-slate-100 p-3 rounded-xl w-full flex justify-between items-center select-none">
+                <span>💊 Recetas Médicas</span>
+                <button onclick="event.preventDefault(); event.stopPropagation(); openTextModal('rx', null)" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">+ Nueva</button>
+              </summary>
+              <div id="rxList" class="space-y-2 mt-3"></div>
+            </details>
+            
+            <details>
+              <summary class="font-bold text-slate-700 bg-slate-100 p-3 rounded-xl w-full flex justify-between items-center select-none">
+                <span>📝 Notas Privadas</span>
+                <button onclick="event.preventDefault(); event.stopPropagation(); openTextModal('note', null)" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">+ Nueva</button>
+              </summary>
+              <div id="notesList" class="space-y-2 mt-3"></div>
+            </details>
+            
           </div>
         </div>
         <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
@@ -218,27 +239,20 @@
     window.addEvent = function() { 
       if(isDemo) return alert("Demo: No se pueden agregar eventos."); 
       petState.events.push({ type: document.getElementById('evType').value, name: document.getElementById('evName').value, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value }); 
-      renderEvents(true); 
-      saveMedicalData(); // AUTO-GUARDADO
-      document.getElementById('evName').value = ''; 
-      document.getElementById('evDate').value = ''; 
+      renderEvents(true); saveMedicalData(); 
+      document.getElementById('evName').value = ''; document.getElementById('evDate').value = ''; 
     }
     window.editEvent = function(i) { 
       if(isDemo) return alert("Demo: No se pueden editar eventos."); 
       const ev = petState.events[i]; const type = prompt("Tipo:", ev.type); if (type === null) return; const name = prompt("Nombre:", ev.name); if (name === null) return; const date = prompt("Fecha (AAAA-MM-DD):", ev.date); if (date === null) return; const status = prompt("Estado:", ev.status); if (status === null) return; 
-      petState.events[i] = { type, name, date, status }; 
-      renderEvents(true); 
-      saveMedicalData(); // AUTO-GUARDADO
+      petState.events[i] = { type, name, date, status }; renderEvents(true); saveMedicalData(); 
     }
     window.deleteEvent = function(i) {
       if(isDemo) return;
-      petState.events.splice(i,1); 
-      renderEvents(true); 
-      saveMedicalData(); // AUTO-GUARDADO
+      petState.events.splice(i,1); renderEvents(true); saveMedicalData(); 
     }
-    window.renderEvents = function(isActive) { const list = document.getElementById('eventsList'); if(!list) return; if(!petState.events.length) return list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos.</p>"; petState.events.sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = petState.events.map((ev, i) => { const sc = ev.status === 'Pendiente' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'; return `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - <span class="px-2 py-1 rounded-full text-xs font-bold ${sc}">${ev.status}</span></p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="deleteEvent(${i})" class="text-red-500">🗑️</button>` : ''}</div></div>`; }).join(''); }
+    window.renderEvents = function(isActive) { const list = document.getElementById('eventsList'); if(!list) return; if(!petState.events.length) return list.innerHTML = "<p class='text-gray-400 text-sm p-3'>No hay eventos.</p>"; petState.events.sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = petState.events.map((ev, i) => { const sc = ev.status === 'Pendiente' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'; return `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - <span class="px-2 py-1 rounded-full text-xs font-bold ${sc}">${ev.status}</span></p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="deleteEvent(${i})" class="text-red-500">🗑️</button>` : ''}</div></div>`; }).join(''); }
 
-    // Lógica para Recetas y Notas (Modales)
     window.openTextModal = function(type, id) {
       currentTextType = type;
       currentTextId = id;
@@ -267,7 +281,7 @@
       }
       closeTextModal();
       renderLists(true);
-      saveMedicalData(); // AUTO-GUARDADO
+      saveMedicalData(); 
     }
     window.deleteTextItem = function(type, id) {
       if(isDemo) return;
@@ -275,7 +289,7 @@
       if(type === 'rx') petState.prescriptions = petState.prescriptions.filter(x => x.id !== id);
       else petState.notesList = petState.notesList.filter(x => x.id !== id);
       renderLists(true);
-      saveMedicalData(); // AUTO-GUARDADO
+      saveMedicalData(); 
     }
     window.sendTextItemToVet = function(type, id) {
       const vetPhone = (document.getElementById('vetCountry').value + document.getElementById('vetPhone').value).replace(/\s/g, '');
@@ -290,7 +304,7 @@
         const list = document.getElementById(type === 'rx' ? 'rxList' : 'notesList');
         if(!list) return;
         const arr = type === 'rx' ? petState.prescriptions : petState.notesList;
-        if(!arr.length) { list.innerHTML = `<p class='text-gray-400 text-sm'>No hay ${type === 'rx' ? 'recetas' : 'notas'}.</p>`; return; }
+        if(!arr.length) { list.innerHTML = `<p class='text-gray-400 text-sm p-3'>No hay ${type === 'rx' ? 'recetas' : 'notas'}.</p>`; return; }
         list.innerHTML = arr.map(item => `
           <div class="flex justify-between items-center p-3 bg-white border rounded-lg">
             <p class="font-bold text-sm flex-1 truncate">${item.title}</p>
@@ -304,7 +318,6 @@
       });
     }
 
-    // CORRECCIÓN: Enviar historial filtra SOLO los eventos con estado "Realizado"
     window.sendHistoryToVet = function() {
       if(isDemo) return alert("Demo: No se puede enviar.");
       const vetPhone = (document.getElementById('vetCountry').value + document.getElementById('vetPhone').value).replace(/\s/g, '');
