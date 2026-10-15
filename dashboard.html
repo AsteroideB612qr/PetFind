@@ -104,6 +104,18 @@
     }
     initApp();
 
+    // AUTO-GUARDADO SILENCIOSO
+    window.saveMedicalData = async function() {
+      if(isDemo) return;
+      try {
+        await db.collection("pets").doc(tagId).update({ 
+          events: petState.events, 
+          prescriptions: petState.prescriptions, 
+          notesList: petState.notesList 
+        });
+      } catch(e) { console.error("Error auto-guardando: ", e); }
+    }
+
     function renderDashboard() {
       const currentCountry = (petState.ownerPhone || "").substring(0, 2), currentPhone = (petState.ownerPhone || "").substring(2);
       const vetCountry = (petState.vetPhone || "").substring(0, 2), vetPhone = (petState.vetPhone || "").substring(2);
@@ -162,6 +174,7 @@
               <div class="flex justify-between items-center mb-3"><h3 class="font-bold">📝 Notas Privadas</h3><button onclick="openTextModal('note', null)" class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-lg font-bold">+ Nueva</button></div>
               <div id="notesList" class="space-y-2"></div>
             </div>
+            <p class="text-xs text-gray-400 text-center pt-4">ℹ️ Los eventos, recetas y notas se guardan automáticamente en la nube al agregarlos o editarlos.</p>
           </div>
         </div>
         <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a></div>
@@ -196,9 +209,28 @@
       window.location.href = 'landing.html';
     }
 
-    window.addEvent = function() { if(isDemo) return alert("Demo: No se pueden agregar eventos."); petState.events.push({ type: document.getElementById('evType').value, name: document.getElementById('evName').value, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value }); renderEvents(true); document.getElementById('evName').value = ''; document.getElementById('evDate').value = ''; }
-    window.editEvent = function(i) { if(isDemo) return alert("Demo: No se pueden editar eventos."); const ev = petState.events[i]; const type = prompt("Tipo:", ev.type); if (type === null) return; const name = prompt("Nombre:", ev.name); if (name === null) return; const date = prompt("Fecha (AAAA-MM-DD):", ev.date); if (date === null) return; const status = prompt("Estado:", ev.status); if (status === null) return; petState.events[i] = { type, name, date, status }; renderEvents(true); }
-    window.renderEvents = function(isActive) { const list = document.getElementById('eventsList'); if(!list) return; if(!petState.events.length) return list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos.</p>"; petState.events.sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = petState.events.map((ev, i) => { const sc = ev.status === 'Pendiente' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'; return `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - <span class="px-2 py-1 rounded-full text-xs font-bold ${sc}">${ev.status}</span></p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="petState.events.splice(${i},1); renderEvents(true);" class="text-red-500">🗑️</button>` : ''}</div></div>`; }).join(''); }
+    window.addEvent = function() { 
+      if(isDemo) return alert("Demo: No se pueden agregar eventos."); 
+      petState.events.push({ type: document.getElementById('evType').value, name: document.getElementById('evName').value, date: document.getElementById('evDate').value, status: document.getElementById('evStatus').value }); 
+      renderEvents(true); 
+      saveMedicalData(); // AUTO-GUARDADO
+      document.getElementById('evName').value = ''; 
+      document.getElementById('evDate').value = ''; 
+    }
+    window.editEvent = function(i) { 
+      if(isDemo) return alert("Demo: No se pueden editar eventos."); 
+      const ev = petState.events[i]; const type = prompt("Tipo:", ev.type); if (type === null) return; const name = prompt("Nombre:", ev.name); if (name === null) return; const date = prompt("Fecha (AAAA-MM-DD):", ev.date); if (date === null) return; const status = prompt("Estado:", ev.status); if (status === null) return; 
+      petState.events[i] = { type, name, date, status }; 
+      renderEvents(true); 
+      saveMedicalData(); // AUTO-GUARDADO
+    }
+    window.deleteEvent = function(i) {
+      if(isDemo) return;
+      petState.events.splice(i,1); 
+      renderEvents(true); 
+      saveMedicalData(); // AUTO-GUARDADO
+    }
+    window.renderEvents = function(isActive) { const list = document.getElementById('eventsList'); if(!list) return; if(!petState.events.length) return list.innerHTML = "<p class='text-gray-400 text-sm'>No hay eventos.</p>"; petState.events.sort((a,b) => new Date(b.date) - new Date(a.date)); list.innerHTML = petState.events.map((ev, i) => { const sc = ev.status === 'Pendiente' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'; return `<div class="flex justify-between items-center p-3 bg-white border rounded-lg"><div><span class="text-xs uppercase text-gray-500">${ev.type}</span><p class="font-bold">${ev.name}</p><p class="text-sm">📅 ${ev.date} - <span class="px-2 py-1 rounded-full text-xs font-bold ${sc}">${ev.status}</span></p></div><div class="flex gap-2">${isActive ? `<button onclick="editEvent(${i})" class="text-blue-500">✏️</button><button onclick="deleteEvent(${i})" class="text-red-500">🗑️</button>` : ''}</div></div>`; }).join(''); }
 
     // Lógica para Recetas y Notas (Modales)
     window.openTextModal = function(type, id) {
@@ -229,6 +261,7 @@
       }
       closeTextModal();
       renderLists(true);
+      saveMedicalData(); // AUTO-GUARDADO
     }
     window.deleteTextItem = function(type, id) {
       if(isDemo) return;
@@ -236,6 +269,7 @@
       if(type === 'rx') petState.prescriptions = petState.prescriptions.filter(x => x.id !== id);
       else petState.notesList = petState.notesList.filter(x => x.id !== id);
       renderLists(true);
+      saveMedicalData(); // AUTO-GUARDADO
     }
     window.sendTextItemToVet = function(type, id) {
       const vetPhone = (document.getElementById('vetCountry').value + document.getElementById('vetPhone').value).replace(/\s/g, '');
@@ -284,11 +318,6 @@
       const data = { photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p, vetName: document.getElementById('vetName').value, vetPhone: vp, species: document.getElementById('species').value, breed: document.getElementById('breed').value, sex: document.getElementById('sex').value, birthDate: document.getElementById('birthDate').value, weight: document.getElementById('weight').value, diet: document.getElementById('diet').value, color: document.getElementById('color').value, sterilized: document.getElementById('sterilized').value, vaccines: document.getElementById('vaccines').value, lastDeworming: document.getElementById('lastDeworming').value, showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked, showSpecies: document.getElementById('showSpecies').checked, showBreed: document.getElementById('showBreed').checked, showSex: document.getElementById('showSex').checked, showBirthDate: document.getElementById('showBirthDate').checked, showAge: document.getElementById('showAge').checked, showWeight: document.getElementById('showWeight').checked, showDiet: document.getElementById('showDiet').checked, showColor: document.getElementById('showColor').checked, showSterilized: document.getElementById('showSterilized').checked, showVaccines: document.getElementById('showVaccines').checked, showDeworming: document.getElementById('showDeworming').checked, showDescription: document.getElementById('showDescription').checked, showMedicalAlerts: document.getElementById('showMedicalAlerts').checked }; 
       await db.collection("pets").doc(tagId).update(data); await db.collection("tags").doc(tagId).update({ phone: p }); 
       alert("¡Perfil guardado!"); 
-    }
-    window.saveMedicalProfile = async function() { 
-      if(isDemo) return alert("Demo: No guardar."); 
-      await db.collection("pets").doc(tagId).update({ events: petState.events, prescriptions: petState.prescriptions, notesList: petState.notesList }); 
-      alert("¡Expediente guardado!"); 
     }
   </script>
 </body>
