@@ -54,8 +54,10 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Billetera</label><input type="text" id="walletName" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Número de Cuenta</label><input type="text" id="walletNumber" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Básico (Ej: 10.00)</label><input type="text" id="basicPrice" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Premium (Ej: 15.00)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Básico (Ej: 20.00)</label><input type="text" id="basicPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Renovación mensual Premium (Ej: 14.90)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Premium: medalla + 1er mes (Ej: 34.90)</label><input type="text" id="premiumPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 2 meses + placa de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2">
           <label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp de PetFind</label>
@@ -223,14 +225,16 @@
         document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola PetFind, me gustaría información sobre las medallas.";
         document.getElementById('waSupportMsg').value = s.waSupportMsg || "Hola PetFind, tuve un problema con mi recibo de pago.";
         document.getElementById('rescueMsg').value = s.rescueMsg || "¡Hola! Encontré a tu mascota. Te escribo desde PetFind para que puedas recuperarla. Te comparto mi ubicación:";
-        document.getElementById('subPrice').value = s.subPrice || "15.00";
-        document.getElementById('basicPrice').value = s.basicPrice || "10.00";
+        document.getElementById('subPrice').value = s.subPrice || "14.90";
+        document.getElementById('basicPrice').value = s.basicPrice || "20.00";
+        document.getElementById('premiumPrice').value = s.premiumPrice || "34.90";
+        document.getElementById('promoPrice').value = s.promoPrice || "29.80";
       }
     }
     window.saveSettings = async function() {
       const fullWa = document.getElementById('petfindCountry').value + document.getElementById('petfindWhatsapp').value;
       try {
-        await db.collection("settings").doc("payment").set({ walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value, supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa, waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value, rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value, basicPrice: document.getElementById('basicPrice').value });
+        await db.collection("settings").doc("payment").set({ walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value, supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa, waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value, rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value, basicPrice: document.getElementById('basicPrice').value, premiumPrice: document.getElementById('premiumPrice').value, promoPrice: document.getElementById('promoPrice').value });
         alert("¡Configuración guardada!");
       } catch(e) { alert("Error al guardar: " + friendlyError(e)); }
     }
