@@ -112,7 +112,7 @@
         </select>
         <input type="text" id="phoneInput" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl text-base">
       </div>
-      <button onclick="savePhone()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-base">Guardar Número</button>
+      <button onclick="savePhone()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-base">Guardar Número</button>
     </div>
   </div>
 
@@ -126,6 +126,9 @@
     const db = firebase.firestore();
     const auth = firebase.auth();
     let currentVoucherTagId = null, currentPhoneTagId = null, currentQRLink = "";
+
+    // Convierte a Date aceptando Timestamp de Firestore O string ISO (compatibilidad con datos antiguos)
+    function expToDate(v) { if (!v) return null; return v.seconds ? new Date(v.seconds * 1000) : new Date(v); }
 
     auth.onAuthStateChanged(user => {
       if (user && user.email === ADMIN_EMAIL) {
@@ -160,10 +163,20 @@
     }
     window.saveSettings = async function() {
       const fullWa = document.getElementById('petfindCountry').value + document.getElementById('petfindWhatsapp').value;
-      await db.collection("settings").doc("payment").set({ walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value, supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa, waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value, rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value, basicPrice: document.getElementById('basicPrice').value });
-      alert("¡Configuración guardada!");
+      try {
+        await db.collection("settings").doc("payment").set({ walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value, supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa, waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value, rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value, basicPrice: document.getElementById('basicPrice').value });
+        alert("¡Configuración guardada!");
+      } catch(e) { alert("Error al guardar: " + e.message); }
     }
-    window.updateAllMessages = async function() { const msg = document.getElementById('rescueMsg').value; const snap = await db.collection("tags").get(); snap.forEach(async (doc) => { await doc.ref.update({ message: msg }); }); alert("Mensaje actualizado en todas las medallas."); }
+    // FIX: antes el alert se disparaba antes de que terminaran las escrituras (falso positivo)
+    window.updateAllMessages = async function() { 
+      const msg = document.getElementById('rescueMsg').value;
+      try {
+        const snap = await db.collection("tags").get();
+        await Promise.all(snap.docs.map(d => d.ref.update({ message: msg })));
+        alert("Mensaje actualizado en todas las medallas.");
+      } catch(e) { alert("Error al actualizar: " + e.message); }
+    }
 
     window.editPhone = function(tagId, p) { currentPhoneTagId = tagId; document.getElementById('phoneCountry').value = p ? p.substring(0, 2) : "51"; document.getElementById('phoneInput').value = p ? p.substring(2) : ""; document.getElementById('phoneModal').classList.remove('hidden'); document.getElementById('phoneModal').classList.add('flex'); }
     window.closePhoneModal = function() { document.getElementById('phoneModal').classList.add('hidden'); }
@@ -238,7 +251,7 @@
           let subStatus = "N/A", subColor = "bg-gray-100", payBadge = "", alertBadge = "";
           let actionsHTML = "";
           
-          // Botón通用: Ver QR
+          // Botón Ver QR
           actionsHTML += `<button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Ver QR</button>`;
           
           if(planTag === 'basic') {
@@ -257,7 +270,7 @@
           } else if(tag.claimed) {
             let daysLeft = null;
             if(tag.subscriptionExpires) {
-              const exp = new Date(tag.subscriptionExpires);
+              const exp = expToDate(tag.subscriptionExpires);
               if(exp > new Date()) { 
                 subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700";
                 daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
@@ -340,7 +353,16 @@
     window.closeQRModal = function() { document.getElementById('qrModal').classList.add('hidden'); }
     window.copyQRLink = function() { navigator.clipboard.writeText(currentQRLink).then(() => alert('¡Link copiado!')); }
 
-    window.adjustDays = async function(tagId, days) { const ref = db.collection("tags").doc(tagId); const snap = await ref.get(); let c = snap.data().subscriptionExpires ? new Date(snap.data().subscriptionExpires) : new Date(); if(c < new Date()) c = new Date(); c.setDate(c.getDate() + days); await ref.update({ subscriptionExpires: c.toISOString() }); listenTags(); }
+    // FIX: ahora guarda Timestamp de Firestore (requerido por las reglas v2 para validar la suscripción)
+    window.adjustDays = async function(tagId, days) { 
+      const ref = db.collection("tags").doc(tagId); 
+      const snap = await ref.get(); 
+      let c = snap.data().subscriptionExpires ? expToDate(snap.data().subscriptionExpires) : new Date(); 
+      if(c < new Date()) c = new Date(); 
+      c.setDate(c.getDate() + days); 
+      await ref.update({ subscriptionExpires: firebase.firestore.Timestamp.fromDate(c) }); 
+      listenTags(); 
+    }
     window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } }
   </script>
 </body>
