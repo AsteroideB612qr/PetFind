@@ -37,6 +37,18 @@
       </div>
     </div>
 
+    <!-- BARRA DE DIAGNÓSTICO DE SESIÓN: dice exactamente lo que Firestore ve de tu cuenta -->
+    <div class="bg-white p-4 rounded-2xl shadow-xl mb-8 border border-gray-100 text-sm">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div id="sessionInfo" class="text-gray-700">Verificando sesión…</div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="testAdminPerms()" class="bg-green-100 text-green-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-green-200">🧪 Probar Permisos</button>
+          <button onclick="refreshSession()" class="bg-blue-100 text-blue-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-200">🔄 Refrescar Token</button>
+          <button id="btnResend" onclick="resendVerification()" class="hidden bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200">📧 Reenviar Verificación</button>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">💳 Configuración Global</h2>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -134,7 +146,7 @@
       if (user && user.email === ADMIN_EMAIL) {
         document.getElementById('loginView').classList.add('hidden');
         document.getElementById('adminView').classList.remove('hidden');
-        loadSettings(); listenTags();
+        loadSettings(); listenTags(); updateSessionBar();
       } else {
         if(user) auth.signOut();
         document.getElementById('loginView').classList.remove('hidden');
@@ -142,8 +154,62 @@
       }
     });
 
-    window.loginAdmin = function() { auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value).catch(() => document.getElementById('loginError').classList.remove('hidden')); }
+    window.loginAdmin = async function() {
+      try {
+        const cred = await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value);
+        await cred.user.reload();
+        await cred.user.getIdToken(true); // Fuerza un token NUEVO para que Firestore vea el email_verified actualizado
+      } catch(e) { document.getElementById('loginError').classList.remove('hidden'); }
+    }
     window.logoutAdmin = function() { auth.signOut(); }
+
+    // ─── DIAGNÓSTICO DE SESIÓN ───
+    async function updateSessionBar() {
+      const info = document.getElementById('sessionInfo');
+      const btnResend = document.getElementById('btnResend');
+      const user = auth.currentUser;
+      if (!user) { info.innerHTML = '<span class="text-red-600 font-bold">Sin sesión activa.</span>'; return; }
+      try {
+        const tok = await user.getIdTokenResult();
+        const emailOk = (user.email || '').toLowerCase() === ADMIN_EMAIL;
+        const verified = tok.claims.email_verified === true;
+        info.innerHTML =
+          '👤 <b>' + user.email + '</b> ' + (emailOk ? '<span class="text-green-600 font-bold">✓ es el correo admin</span>' : '<span class="text-red-600 font-bold">NO es ' + ADMIN_EMAIL + '</span>') +
+          ' &nbsp;·&nbsp; 📧 Verificado (lo que ve Firestore): ' + (verified ? '<b class="text-green-600">SÍ</b>' : '<b class="text-red-600">NO</b> → pulsa Refrescar Token o cierra sesión y vuelve a entrar') +
+          ' &nbsp;·&nbsp; 🕒 Token emitido: ' + (tok.issuedAtTime ? new Date(tok.issuedAtTime).toLocaleTimeString() : '—');
+        btnResend.classList.toggle('hidden', verified);
+      } catch(e) { info.textContent = 'Error leyendo el token: ' + e.message; }
+    }
+    window.refreshSession = async function() {
+      const user = auth.currentUser; if (!user) return;
+      await user.reload();
+      await user.getIdToken(true);
+      await updateSessionBar();
+      alert('Token actualizado. Ahora usa "🧪 Probar Permisos" para confirmar.');
+    }
+    window.resendVerification = async function() {
+      try { await auth.currentUser.sendEmailVerification(); alert('Correo de verificación enviado. Revisa tu bandeja (y spam), haz clic en el enlace y luego pulsa "🔄 Refrescar Token".'); }
+      catch(e) { alert('Error al enviar: ' + e.message); }
+    }
+    window.testAdminPerms = async function() {
+      const ref = db.collection("settings").doc("_diagnostico");
+      try {
+        await ref.set({ test: true, at: new Date().toISOString() });
+        await ref.delete();
+        alert('✅ PERMISOS ADMIN CORRECTOS. Firestore aceptó una escritura de prueba (y la borró). Ya puedes guardar config, aprobar pagos, dar días y eliminar medallas.');
+      } catch(e) { alert('❌ Firestore RECHAZÓ la escritura de prueba:\n\n' + friendlyError(e)); }
+    }
+    // Traduce los errores de permisos a pasos accionables
+    function friendlyError(e) {
+      const msg = (e && e.message) || '';
+      if ((e && e.code === 'permission-denied') || msg.indexOf('permission') >= 0) {
+        const u = auth.currentUser;
+        if (!u) return 'No hay sesión activa. Inicia sesión de nuevo.';
+        if ((u.email || '') !== ADMIN_EMAIL) return 'Iniciaste sesión con ' + u.email + ', que NO es el correo admin (' + ADMIN_EMAIL + ').';
+        return 'Tu sesión no figura como admin verificado. Casi siempre es el token antiguo (anterior a verificar el correo) → pulsa "🔄 Refrescar Token" arriba o cierra sesión y vuelve a entrar. Si persiste, el correo sigue NO verificado en Firebase Auth → usa "📧 Reenviar Verificación".';
+      }
+      return msg || 'Error desconocido';
+    }
 
     async function loadSettings() {
       const snap = await db.collection("settings").doc("payment").get();
@@ -166,7 +232,7 @@
       try {
         await db.collection("settings").doc("payment").set({ walletName: document.getElementById('walletName').value, walletNumber: document.getElementById('walletNumber').value, supportEmail: document.getElementById('supportEmail').value, petfindWhatsapp: fullWa, waSalesMsg: document.getElementById('waSalesMsg').value, waSupportMsg: document.getElementById('waSupportMsg').value, rescueMsg: document.getElementById('rescueMsg').value, subPrice: document.getElementById('subPrice').value, basicPrice: document.getElementById('basicPrice').value });
         alert("¡Configuración guardada!");
-      } catch(e) { alert("Error al guardar: " + e.message); }
+      } catch(e) { alert("Error al guardar: " + friendlyError(e)); }
     }
     // FIX: antes el alert se disparaba antes de que terminaran las escrituras (falso positivo)
     window.updateAllMessages = async function() { 
@@ -175,12 +241,12 @@
         const snap = await db.collection("tags").get();
         await Promise.all(snap.docs.map(d => d.ref.update({ message: msg })));
         alert("Mensaje actualizado en todas las medallas.");
-      } catch(e) { alert("Error al actualizar: " + e.message); }
+      } catch(e) { alert("Error al actualizar: " + friendlyError(e)); }
     }
 
     window.editPhone = function(tagId, p) { currentPhoneTagId = tagId; document.getElementById('phoneCountry').value = p ? p.substring(0, 2) : "51"; document.getElementById('phoneInput').value = p ? p.substring(2) : ""; document.getElementById('phoneModal').classList.remove('hidden'); document.getElementById('phoneModal').classList.add('flex'); }
     window.closePhoneModal = function() { document.getElementById('phoneModal').classList.add('hidden'); }
-    window.savePhone = async function() { await db.collection("tags").doc(currentPhoneTagId).update({ phone: document.getElementById('phoneCountry').value + document.getElementById('phoneInput').value }); alert("WhatsApp actualizado."); closePhoneModal(); listenTags(); }
+    window.savePhone = async function() { try { await db.collection("tags").doc(currentPhoneTagId).update({ phone: document.getElementById('phoneCountry').value + document.getElementById('phoneInput').value }); alert("WhatsApp actualizado."); closePhoneModal(); listenTags(); } catch(e) { alert("Error: " + friendlyError(e)); } }
 
     window.showVouchers = function(tagId) {
       currentVoucherTagId = tagId;
@@ -204,9 +270,9 @@
       });
     }
     window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
-    window.approveVoucher = async function(tagId, vid) { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "approved" }); v.status = "approved"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("¡Aprobado! Recuerda darle +30d."); showVouchers(tagId); } }
-    window.rejectVoucher = async function(tagId, vid) { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "rejected" }); v.status = "rejected"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("Rechazado."); showVouchers(tagId); } }
-    window.resolveVoucher = async function(tagId, vid) { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v) }); if(vs.length === 1) await ref.update({ paymentStatus: "none" }); alert("Superado."); showVouchers(tagId); } }
+    window.approveVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "approved" }); v.status = "approved"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("¡Aprobado! Recuerda darle +30d."); showVouchers(tagId); } } catch(e) { alert("Error al aprobar: " + friendlyError(e)); } }
+    window.rejectVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "rejected" }); v.status = "rejected"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("Rechazado."); showVouchers(tagId); } } catch(e) { alert("Error al rechazar: " + friendlyError(e)); } }
+    window.resolveVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v) }); if(vs.length === 1) await ref.update({ paymentStatus: "none" }); alert("Superado."); showVouchers(tagId); } } catch(e) { alert("Error: " + friendlyError(e)); } }
 
     function generatePlateId() { return 'PF' + Math.floor(100000 + Math.random() * 900000); }
 
@@ -218,20 +284,23 @@
         const link = `https://petfind-omega.vercel.app/scan.html?id=${newId}`;
         showQR(link, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`);
         document.getElementById('petName').value = ""; listenTags();
-      });
+      })
+      .catch(e => alert("Error al crear la medalla: " + friendlyError(e)));
     }
 
     window.changePlan = async function(tagId, newPlan) {
-      if(newPlan === 'basic') {
-        if(!confirm("¿Bajar a Básico? Se borrará el perfil de la mascota y el QR irá directo a WhatsApp.")) return;
-        await db.collection("tags").doc(tagId).update({ plan: 'basic', claimed: false });
-        await db.collection("pets").doc(tagId).delete().catch(()=>{});
-      } else {
-        if(!confirm("¿Subir a Premium? El dueño deberá escanear el QR para reclamar su nuevo perfil.")) return;
-        await db.collection("tags").doc(tagId).update({ plan: 'premium', claimed: false });
-        await db.collection("pets").doc(tagId).delete().catch(()=>{});
-      }
-      alert("Plan actualizado."); listenTags();
+      try {
+        if(newPlan === 'basic') {
+          if(!confirm("¿Bajar a Básico? Se borrará el perfil de la mascota y el QR irá directo a WhatsApp.")) return;
+          await db.collection("tags").doc(tagId).update({ plan: 'basic', claimed: false });
+          await db.collection("pets").doc(tagId).delete().catch(()=>{});
+        } else {
+          if(!confirm("¿Subir a Premium? El dueño deberá escanear el QR para reclamar su nuevo perfil.")) return;
+          await db.collection("tags").doc(tagId).update({ plan: 'premium', claimed: false });
+          await db.collection("pets").doc(tagId).delete().catch(()=>{});
+        }
+        alert("Plan actualizado."); listenTags();
+      } catch(e) { alert("Error al cambiar plan: " + friendlyError(e)); }
     }
 
     function listenTags() {
@@ -354,16 +423,18 @@
     window.copyQRLink = function() { navigator.clipboard.writeText(currentQRLink).then(() => alert('¡Link copiado!')); }
 
     // FIX: ahora guarda Timestamp de Firestore (requerido por las reglas v2 para validar la suscripción)
-    window.adjustDays = async function(tagId, days) { 
-      const ref = db.collection("tags").doc(tagId); 
-      const snap = await ref.get(); 
-      let c = snap.data().subscriptionExpires ? expToDate(snap.data().subscriptionExpires) : new Date(); 
-      if(c < new Date()) c = new Date(); 
-      c.setDate(c.getDate() + days); 
-      await ref.update({ subscriptionExpires: firebase.firestore.Timestamp.fromDate(c) }); 
-      listenTags(); 
+    window.adjustDays = async function(tagId, days) {
+      try {
+        const ref = db.collection("tags").doc(tagId);
+        const snap = await ref.get();
+        let c = snap.data().subscriptionExpires ? expToDate(snap.data().subscriptionExpires) : new Date();
+        if(c < new Date()) c = new Date();
+        c.setDate(c.getDate() + days);
+        await ref.update({ subscriptionExpires: firebase.firestore.Timestamp.fromDate(c) });
+        listenTags();
+      } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
-    window.deleteTag = async function(tagId) { if (confirm("¿Eliminar?")) { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } }
+    window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar?")) return; try { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
   </script>
 </body>
 </html>
