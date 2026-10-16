@@ -43,6 +43,9 @@
       }
     };
 
+    // Convierte a Date aceptando Timestamp de Firestore O string ISO (compatibilidad con datos antiguos)
+    function expToDate(v) { if (!v) return null; return v.seconds ? new Date(v.seconds * 1000) : new Date(v); }
+
     function calculateAge(birthDate) {
       if (!birthDate) return null;
       const bDate = new Date(birthDate), now = new Date();
@@ -65,7 +68,7 @@
         if (tag.plan === 'basic') { window.location.href = `go.html?id=${tagId}`; return; }
         if (!tag.claimed) { renderClaimForm(tagId, tag.message); } 
         else {
-          const isActive = tag.subscriptionExpires && new Date(tag.subscriptionExpires) > new Date();
+          const isActive = tag.subscriptionExpires && expToDate(tag.subscriptionExpires) > new Date();
           if(!isActive) { renderDisabledProfile(); return; }
           const petSnap = await db.collection("pets").doc(tagId).get();
           if (petSnap.exists) { updatePWA(petSnap.data().name || "PetFind", petSnap.data().photoUrl); renderPublicProfile(petSnap.data(), petSnap.data().ownerPhone || tag.phone, tag.message); } 
