@@ -352,6 +352,9 @@
             if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-0.5 rounded-full ml-1 animate-pulse">Pago Pendiente</span>`;
             else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-1">Aprobado</span>`;
             else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-0.5 rounded-full ml-1">Rechazado</span>`;
+            if(tag.subscriptionExpires && typeof tag.subscriptionExpires === 'string') {
+              alertBadge += `<span class="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full ml-1" title="Fecha guardada en formato antiguo (texto): la regla de suscripción no la puede leer y bloquea al dueño. Pulsa 🔧 Normalizar.">🔧 formato antiguo</span>`;
+            }
 
             const vCount = tag.vouchers ? tag.vouchers.length : 0;
             if(vCount > 0) {
@@ -368,11 +371,12 @@
 
             actionsHTML += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬇️ Bajar a Básico</button>`;
             
-            actionsHTML += `<div class="col-span-2 md:col-span-4 grid grid-cols-4 gap-1 bg-slate-100 p-1 rounded-lg mt-1">
+            actionsHTML += `<div class="col-span-2 md:col-span-4 grid grid-cols-5 gap-1 bg-slate-100 p-1 rounded-lg mt-1">
               <button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-30d</button>
               <button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-1d</button>
               <button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-1.5 rounded-md text-xs font-bold">+1d</button>
               <button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-1.5 rounded-md text-xs font-bold">+30d</button>
+              <button onclick="adjustDays('${doc.id}', 0)" class="bg-yellow-100 text-yellow-700 py-1.5 rounded-md text-xs font-bold" title="Normalizar: guarda la misma fecha en formato nuevo (Timestamp) sin cambiar los días. Corrige el bloqueo por formato antiguo.">🔧</button>
             </div>`;
             
           } else {
@@ -428,10 +432,14 @@
         const ref = db.collection("tags").doc(tagId);
         const snap = await ref.get();
         let c = snap.data().subscriptionExpires ? expToDate(snap.data().subscriptionExpires) : new Date();
-        if(c < new Date()) c = new Date();
-        c.setDate(c.getDate() + days);
+        if (isNaN(c.getTime())) c = new Date();
+        if (days !== 0) {
+          if(c < new Date()) c = new Date();
+          c.setDate(c.getDate() + days);
+        }
         await ref.update({ subscriptionExpires: firebase.firestore.Timestamp.fromDate(c) });
         listenTags();
+        if (days === 0) alert("🔧 Fecha normalizada al formato nuevo (Timestamp). Si el perfil estaba activo, el dueño ya puede editar; si estaba vencido, dale +30d para activarlo.");
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
     window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar?")) return; try { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
