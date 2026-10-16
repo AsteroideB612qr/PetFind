@@ -137,7 +137,7 @@
           prescriptions: petState.prescriptions, 
           notesList: petState.notesList 
         });
-      } catch(e) { alert("No se pudo guardar (¿suscripción inactiva?): " + e.message); }
+      } catch(e) { const m=(e&&e.message)||''; if((e&&e.code==='permission-denied')||m.indexOf('permission')>=0){ alert('🔒 No se pudo guardar: tu suscripción Premium no consta como activa. Si ya pagaste, escribe a soporte: el administrador debe activar tu medalla desde su panel (botón +30d o 🔧).'); } else { alert('No se pudo guardar: ' + m); } }
     }
     function renderDashboard() {
       const currentCountry = (petState.ownerPhone || "").substring(0, 2), currentPhone = (petState.ownerPhone || "").substring(2);
@@ -386,7 +386,7 @@
       try {
         await db.collection("pets").doc(tagId).update(data); await db.collection("tags").doc(tagId).update({ phone: p }); 
         alert("¡Perfil guardado!"); 
-      } catch(e) { alert("Error al guardar (¿suscripción inactiva?): " + e.message); }
+      } catch(e) { const m=(e&&e.message)||''; if((e&&e.code==='permission-denied')||m.indexOf('permission')>=0){ alert('🔒 No se pudo guardar: tu suscripción Premium no consta como activa. Si ya pagaste, escribe a soporte: el administrador debe activar tu medalla desde su panel (botón +30d o 🔧).'); } else { alert('No se pudo guardar: ' + m); } }
     }
   </script>
 </body>
