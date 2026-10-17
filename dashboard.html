@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PetFind - Dashboard</title>
+  <title>ChochePet - Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -120,7 +120,7 @@
           if(!petState.events) petState.events = [];
           if(!petState.prescriptions) petState.prescriptions = [];
           if(!petState.notesList) petState.notesList = [];
-          if(settingsState.petfindWhatsapp) { document.getElementById('supportBtn').href = `https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind')}`; document.getElementById('supportBtn').style.display = 'flex'; }
+          if(settingsState.petfindWhatsapp) { document.getElementById('supportBtn').href = `https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola ChochePet')}`; document.getElementById('supportBtn').style.display = 'flex'; }
           renderDashboard();
           db.collection("tags").doc(tagId).onSnapshot(doc => { tagState = doc.data(); renderMembership(); applyLock(); });
           db.collection("pets").doc(tagId).onSnapshot(doc => { petState = doc.data(); if(!petState.events) petState.events = []; if(!petState.prescriptions) petState.prescriptions = []; if(!petState.notesList) petState.notesList = []; const isActive = isSubscriptionActive(); renderEvents(isActive); renderLists(isActive); });
@@ -149,7 +149,7 @@
       
       document.getElementById('content').innerHTML = `
         <div class="flex flex-col items-center mb-8 pt-8">
-          <a href="landing.html" target="_blank"><img src="logo.png" alt="PetFind" class="h-20 mb-2 cursor-pointer hover:opacity-80 transition"></a>
+          <a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 mb-2 cursor-pointer hover:opacity-80 transition"></a>
           <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>${logoutBtn}
         </div>
         
@@ -189,7 +189,7 @@
               <div class="mt-4">
                 <div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">🚨 Alertas Médicas</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showMedicalAlerts" class="w-5 h-5 text-blue-600 rounded" ${petState.showMedicalAlerts !== false ? 'checked' : ''}></div></div>
                 <input type="text" id="petAlerts" value="${petState.medicalAlerts || ''}" class="w-full p-3 border rounded-xl">
-                <p class="text-xs text-gray-400 mt-1">⚠️ PetFind no se hace responsable por decisiones médicas tomadas por terceros.</p>
+                <p class="text-xs text-gray-400 mt-1">⚠️ ChochePet no se hace responsable por decisiones médicas tomadas por terceros.</p>
               </div>
             </details>
 
@@ -264,7 +264,7 @@
         membershipHTML = `<p class="text-sm text-gray-500 text-center mb-4">¿Quieres adelantar tu pago para no perder días? Hazlo aquí:</p>${paymentForm}`;
       } else if (payStatus === 'pending') { membershipHTML = `<p class="text-blue-600 font-bold text-center animate-pulse">⏳ Recibo enviado, esperando revisión...</p>`; } 
       else if (payStatus === 'approved') { membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu suscripción en breve.</p>`; } 
-      else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola PetFind')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}`; } 
+      else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola ChochePet')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}`; } 
       else { membershipHTML = `${paymentForm}`; }
       
       if(!isDemo) { membershipHTML += `<div class="text-center mt-6 border-t border-slate-200 pt-6"><button onclick="downgradeToBasic()" class="text-red-500 hover:text-red-700 text-sm font-bold">⚠️ Bajar a Plan Básico (Se perderá el perfil)</button></div>`; }
