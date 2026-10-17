@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>PetFind - Admin</title>
+  <title>ChochePet - Admin</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -17,7 +17,7 @@
   <!-- VISTA DE LOGIN -->
   <div id="loginView" class="flex items-center justify-center min-h-screen">
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl w-full max-w-md text-center">
-      <img src="logo.png" alt="PetFind" class="h-20 mx-auto mb-6">
+      <img src="logo.png" alt="ChochePet" class="h-20 mx-auto mb-6">
       <h2 class="text-2xl font-bold text-gray-800 mb-4">Panel Super Admin</h2>
       <p class="text-gray-500 mb-6 text-sm">Acceso restringido. Inicia sesión para continuar.</p>
       <input type="email" id="loginEmail" placeholder="Tu correo de Admin" class="w-full p-3 border rounded-xl mb-3 text-base">
@@ -30,7 +30,7 @@
   <!-- VISTA DEL PANEL -->
   <div id="adminView" class="hidden max-w-5xl mx-auto">
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-      <img src="logo.png" alt="PetFind" class="h-16">
+      <img src="logo.png" alt="ChochePet" class="h-16">
       <div class="flex gap-2 w-full md:w-auto">
         <a href="landing.html" target="_blank" class="flex-1 bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-900 flex items-center justify-center gap-2">👁️ Landing</a>
         <button onclick="logoutAdmin()" class="flex-1 bg-red-100 text-red-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-200">Cerrar Sesión</button>
@@ -60,7 +60,7 @@
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 2 meses + placa de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2">
-          <label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp de PetFind</label>
+          <label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp de ChochePet</label>
           <div class="flex gap-2">
             <select id="petfindCountry" class="w-1/3 p-3 border rounded-xl text-base"><option value="51">🇵🇪 +51</option><option value="52">🇲🇽 +52</option><option value="57">🇨🇴 +57</option><option value="54">🇦🇷 +54</option><option value="56">🇨🇱 +56</option><option value="34">🇪🇸 +34</option><option value="1">🇺🇸 +1</option></select>
             <input type="text" id="petfindWhatsapp" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl text-base">
@@ -222,9 +222,9 @@
         document.getElementById('supportEmail').value = s.supportEmail || "";
         document.getElementById('petfindWhatsapp').value = s.petfindWhatsapp ? s.petfindWhatsapp.substring(2) : "";
         document.getElementById('petfindCountry').value = s.petfindWhatsapp ? s.petfindWhatsapp.substring(0, 2) : "51";
-        document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola PetFind, me gustaría información sobre las medallas.";
-        document.getElementById('waSupportMsg').value = s.waSupportMsg || "Hola PetFind, tuve un problema con mi recibo de pago.";
-        document.getElementById('rescueMsg').value = s.rescueMsg || "¡Hola! Encontré a tu mascota. Te escribo desde PetFind para que puedas recuperarla. Te comparto mi ubicación:";
+        document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola ChochePet, me gustaría información sobre las medallas.";
+        document.getElementById('waSupportMsg').value = s.waSupportMsg || "Hola ChochePet, tuve un problema con mi recibo de pago.";
+        document.getElementById('rescueMsg').value = s.rescueMsg || "¡Hola! Encontré a tu mascota. Te escribo desde ChochePet para que puedas recuperarla. Te comparto mi ubicación:";
         document.getElementById('subPrice').value = s.subPrice || "14.90";
         document.getElementById('basicPrice').value = s.basicPrice || "20.00";
         document.getElementById('premiumPrice').value = s.premiumPrice || "34.90";
@@ -335,7 +335,7 @@
             actionsHTML += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬆️ Subir a Premium</button>`;
             
             if(tag.phone) {
-              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de PetFind tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🛍️ Ofrecer Premium</a>`;
+              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de ChochePet tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🛍️ Ofrecer Premium</a>`;
             } else {
               actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">N/A</div>`;
             }
@@ -368,7 +368,7 @@
             }
             
             if(daysLeft !== null && daysLeft <= 5) {
-              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de PetFind vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🔔 Recordar Pago</a>`;
+              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de ChochePet vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🔔 Recordar Pago</a>`;
             } else {
               actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Al día</div>`;
             }
