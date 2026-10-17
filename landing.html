@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PetFind - Siempre cerca, siempre juntos</title>
+  <title>ChochePet - Tu Choche, Tu Pet</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
@@ -17,7 +17,7 @@
   <!-- NAVBAR -->
   <nav class="bg-white shadow-sm sticky top-0 z-50">
     <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center">
-      <img src="logo.png" alt="PetFind" class="h-12">
+      <img src="logo.png" alt="ChochePet" class="h-12">
       <div class="flex gap-2">
         <a href="dashboard.html?demo=true" target="_blank" class="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-200 transition">🧪 Probar Demo</a>
         <a id="navCta" href="#" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-blue-700 transition">Comprar Ahora</a>
@@ -33,7 +33,7 @@
         ¿Qué pasaría si tu mejor amigo se pierde <br> y <span class="text-orange-400">nadie sabe cómo ayudarlo?</span>
       </h1>
       <p class="text-slate-300 text-lg mb-8 max-w-2xl mx-auto">
-        Cada año miles de mascotas se pierden. La diferencia entre volver a casa o no, son los <strong>5 segundos</strong> que tarda alguien en escanear la medalla de PetFind.
+        Cada año miles de mascotas se pierden. La diferencia entre volver a casa o no, son los <strong>5 segundos</strong> que tarda alguien en escanear la medalla de ChochePet.
       </p>
       <div class="flex flex-col md:flex-row gap-4 justify-center items-center">
         <a id="heroCta" href="#" target="_blank" class="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-2xl font-bold text-lg shadow-lg transition transform hover:scale-105 inline-flex items-center gap-2">
@@ -75,13 +75,13 @@
   <!-- COMPARACIÓN -->
   <section class="py-16 px-4 bg-slate-50">
     <div class="max-w-4xl mx-auto text-center">
-      <span class="text-blue-600 font-bold uppercase tracking-wide text-sm">Por qué PetFind es mejor</span>
+      <span class="text-blue-600 font-bold uppercase tracking-wide text-sm">Por qué ChochePet es mejor</span>
       <h2 class="text-3xl font-bold text-slate-800 mt-2 mb-10">Adiós a las excusas: La tecnología más confiable del mercado.</h2>
       
       <div class="bg-white p-8 rounded-3xl shadow-xl text-left mb-10">
         <div class="grid md:grid-cols-2 gap-8 items-center">
           <div>
-            <h3 class="text-2xl font-bold text-slate-800 mb-4">¿Cómo funciona PetFind?</h3>
+            <h3 class="text-2xl font-bold text-slate-800 mb-4">¿Cómo funciona ChochePet?</h3>
             <ul class="space-y-4">
               <li class="flex gap-3"><span class="text-green-500 text-2xl">1️⃣</span> <p class="text-slate-600">Alguien encuentra a tu mascota y escanea el QR de su medalla con su celular.</p></li>
               <li class="flex gap-3"><span class="text-green-500 text-2xl">2️⃣</span> <p class="text-slate-600">Se abre su perfil web (o WhatsApp directo) con un botón de "Enviar Ubicación".</p></li>
@@ -106,19 +106,19 @@
           <div class="text-3xl mb-3">📡</div>
           <h3 class="font-bold text-lg text-slate-800 mb-2">Rastreadores GPS</h3>
           <p class="text-slate-600 text-sm"><strong class="text-red-500">El problema:</strong> Cuestan más de S/ 150, requieren recargas eléctricas, se malogran con el agua y pierden señal. Si no tienen batería, no sirven.</p>
-          <p class="text-green-600 font-bold text-sm mt-3">✅ PetFind: No usa pilas. Siempre está listo y cuesta una fracción.</p>
+          <p class="text-green-600 font-bold text-sm mt-3">✅ ChochePet: No usa pilas. Siempre está listo y cuesta una fracción.</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-yellow-500">
           <div class="text-3xl mb-3">💉</div>
           <h3 class="font-bold text-lg text-slate-800 mb-2">Microchips Internos</h3>
           <p class="text-slate-600 text-sm"><strong class="text-yellow-500">El problema:</strong> Están ocultos bajo la piel. La persona que encuentra a tu mascota no tiene un lector veterinario especial en su casa.</p>
-          <p class="text-green-600 font-bold text-sm mt-3">✅ PetFind: Visible y al alcance de cualquier celular con cámara.</p>
+          <p class="text-green-600 font-bold text-sm mt-3">✅ ChochePet: Visible y al alcance de cualquier celular con cámara.</p>
         </div>
         <div class="bg-white p-6 rounded-2xl shadow-lg border-t-4 border-blue-500">
           <div class="text-3xl mb-3">📱</div>
           <h3 class="font-bold text-lg text-slate-800 mb-2">Etiquetas NFC</h3>
           <p class="text-slate-600 text-sm"><strong class="text-blue-500">El problema:</strong> Requieren que el celular tenga NFC y que sepas exactamente dónde tocar la medalla. A veces no funcionan en iPhones.</p>
-          <p class="text-green-600 font-bold text-sm mt-3">✅ PetFind: 100% compatible con cualquier celular con cámara.</p>
+          <p class="text-green-600 font-bold text-sm mt-3">✅ ChochePet: 100% compatible con cualquier celular con cámara.</p>
         </div>
       </div>
 
@@ -126,7 +126,7 @@
         <div class="text-6xl">🗓️</div>
         <div>
           <h3 class="text-xl font-bold text-blue-800 mb-2">Más que un rescate: Una bitácora de salud completa</h3>
-          <p class="text-slate-600">Con el <strong>Plan Premium</strong>, PetFind no solo es para emergencias. Te da un panel privado para registrar vacunas, desparasitaciones, citas al veterinario y recetas médicas. Toda la información de tu peludo, segura y a la mano en tu celular para el día a día.</p>
+          <p class="text-slate-600">Con el <strong>Plan Premium</strong>, ChochePet no solo es para emergencias. Te da un panel privado para registrar vacunas, desparasitaciones, citas al veterinario y recetas médicas. Toda la información de tu peludo, segura y a la mano en tu celular para el día a día.</p>
         </div>
       </div>
     </div>
@@ -194,7 +194,7 @@
           <a id="premiumCta" href="#" target="_blank" class="block text-center bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">Comprar Premium</a>
         </div>
       </div>
-      <p class="text-xs text-gray-400 mt-8 max-w-lg mx-auto">* PetFind es una herramienta de facilitación de contacto. No garantizamos la recuperación de la mascota, ya que depende de terceros. Al adquirir tu medalla aceptas nuestros <a href="terminos.html" target="_blank" class="text-blue-500 underline">Términos de Servicio</a> y <a href="privacidad.html" target="_blank" class="text-blue-500 underline">Política de Privacidad</a>.</p>
+      <p class="text-xs text-gray-400 mt-8 max-w-lg mx-auto">* ChochePet es una herramienta de facilitación de contacto. No garantizamos la recuperación de la mascota, ya que depende de terceros. Al adquirir tu medalla aceptas nuestros <a href="terminos.html" target="_blank" class="text-blue-500 underline">Términos de Servicio</a> y <a href="privacidad.html" target="_blank" class="text-blue-500 underline">Política de Privacidad</a>.</p>
     </div>
   </section>
 
@@ -212,8 +212,8 @@
 
   <!-- FOOTER -->
   <footer class="bg-slate-900 text-slate-500 py-8 text-center text-sm">
-    <img src="logo.png" alt="PetFind" class="h-12 mx-auto mb-4">
-    <p>© 2024 PetFind. Siempre cerca, siempre juntos.</p>
+    <img src="logo.png" alt="ChochePet" class="h-12 mx-auto mb-4">
+    <p>© 2024-2026 ChochePet. Tu Choche, Tu Pet.</p>
     <p class="text-xs mt-2">Hecho con 💙 para proteger a quienes más amas.</p>
     <div class="mt-4 flex justify-center gap-4 text-xs">
       <a href="terminos.html" target="_blank" class="text-slate-400 hover:text-white underline">Términos de Servicio</a>
@@ -254,12 +254,12 @@
         
         // CTAs con mensaje pre-llenado por plan (así sabes qué quiere cada cliente)
         const link = (msg) => `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
-        document.getElementById('navCta').href = link(`Hola PetFind 🐾 Vi la promo de lanzamiento (2 meses Premium + placa por S/ ${poPrice}) y quiero una medalla para mi mascota.`);
-        document.getElementById('heroCta').href = link(`Hola PetFind 🔥 Quiero aprovechar la Promo de Lanzamiento: 2 meses de Premium + placa de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
-        document.getElementById('footerCta').href = link(`Hola PetFind 🔥 Quiero la Promo de Lanzamiento (2 meses Premium + placa de cortesía por S/ ${poPrice}).`);
-        document.getElementById('basicCta').href = link(`Hola PetFind 🐾 Quiero el Plan Básico (S/ ${bPrice}, pago único) para mi mascota. ¿Me pasas info para pedirla?`);
-        document.getElementById('premiumCta').href = link(`Hola PetFind 👑 Quiero el Plan Premium (S/ ${prPrice} la medalla, 1er mes incluido). ¿Cómo la pido?`);
-        document.getElementById('promoCta').href = link(`Hola PetFind 🔥 Quiero la Promo de Lanzamiento: 2 meses de Premium + placa de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
+        document.getElementById('navCta').href = link(`Hola ChochePet 🐾 Vi la promo de lanzamiento (2 meses Premium + placa por S/ ${poPrice}) y quiero una medalla para mi mascota.`);
+        document.getElementById('heroCta').href = link(`Hola ChochePet 🔥 Quiero aprovechar la Promo de Lanzamiento: 2 meses de Premium + placa de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
+        document.getElementById('footerCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento (2 meses Premium + placa de cortesía por S/ ${poPrice}).`);
+        document.getElementById('basicCta').href = link(`Hola ChochePet 🐾 Quiero el Plan Básico (S/ ${bPrice}, pago único) para mi mascota. ¿Me pasas info para pedirla?`);
+        document.getElementById('premiumCta').href = link(`Hola ChochePet 👑 Quiero el Plan Premium (S/ ${prPrice} la medalla, 1er mes incluido). ¿Cómo la pido?`);
+        document.getElementById('promoCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento: 2 meses de Premium + placa de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
       }
     }
     loadLandingData();
