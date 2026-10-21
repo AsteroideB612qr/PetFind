@@ -89,7 +89,7 @@
 
     <!-- RESUMEN DEL INVENTARIO -->
     <div class="mb-8">
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
           <p class="text-2xl md:text-3xl font-extrabold text-gray-800" id="stTotal">0</p>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🏷️ Existentes</p>
@@ -106,12 +106,16 @@
           <p class="text-2xl md:text-3xl font-extrabold text-orange-500" id="stBasic">0</p>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🐶 Básico</p>
         </div>
-        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center col-span-2 md:col-span-1">
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
           <p class="text-2xl md:text-3xl font-extrabold text-emerald-600" id="stAvailable">0</p>
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">📦 Disponibles</p>
         </div>
+        <div id="stPendingCard" class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center" title="Recibos de pago subidos por dueños que aún no apruebas o rechazas">
+          <p class="text-2xl md:text-3xl font-extrabold text-gray-800" id="stPending">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🧾 Recibos Pendientes</p>
+        </div>
       </div>
-      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium y 🐶 Básico cuentan solo medallas <b>reclamadas</b> · 📦 Disponibles = aún sin reclamar</p>
+      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium y 🐶 Básico cuentan solo medallas <b>reclamadas</b> · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos)</p>
     </div>
 
     <div class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
@@ -425,6 +429,13 @@
       set('stPremium', prem);
       set('stBasic', bas);
       set('stAvailable', all.length - claimed.length);
+      const pend = all.reduce((n, t) => n + ((t.vouchers || []).filter(v => v.status === 'pending').length), 0);
+      set('stPending', pend);
+      const pCard = document.getElementById('stPendingCard'), pNum = document.getElementById('stPending');
+      if (pCard && pNum) {
+        pCard.classList.toggle('ring-2', pend > 0); pCard.classList.toggle('ring-amber-400', pend > 0); pCard.classList.toggle('bg-amber-50', pend > 0);
+        pNum.classList.toggle('animate-pulse', pend > 0); pNum.classList.toggle('text-amber-600', pend > 0); pNum.classList.toggle('text-gray-800', pend === 0);
+      }
     }
 
     function listenTags() {
