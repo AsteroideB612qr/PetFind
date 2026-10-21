@@ -88,11 +88,26 @@
     </div>
 
     <div class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
-      <div class="flex justify-between items-center mb-6">
-        <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario</h2>
-        <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄 Actualizar</button>
+      <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario <span id="tagCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
+        <div class="flex gap-2">
+          <input id="tagSearch" type="text" placeholder="🔎 Buscar código o nombre..." oninput="filterTags()" class="p-2 border rounded-xl text-sm w-40 md:w-56">
+          <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄</button>
+        </div>
       </div>
-      <div id="tagsList" class="space-y-4"></div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm min-w-[620px]">
+          <thead>
+            <tr class="text-left text-xs uppercase tracking-wide text-gray-400 border-b">
+              <th class="py-2 pr-3 font-bold">Código</th>
+              <th class="py-2 pr-3 font-bold">Nombre interno</th>
+              <th class="py-2 pr-3 font-bold">Estado</th>
+              <th class="py-2 text-right font-bold">Gestión</th>
+            </tr>
+          </thead>
+          <tbody id="tagsList" class="divide-y divide-gray-100"></tbody>
+        </table>
+      </div>
     </div>
   </div>
 
@@ -129,6 +144,22 @@
         <input type="text" id="phoneInput" placeholder="Número sin código" class="w-2/3 p-3 border rounded-xl text-base">
       </div>
       <button onclick="savePhone()" class="w-full bg-blue-600 py-3 rounded-xl font-bold text-base">Guardar Número</button>
+    </div>
+  </div>
+
+  <!-- MODAL DE GESTIÓN DE MEDALLA -->
+  <div id="manageModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50" onclick="closeManage()">
+    <div class="bg-white p-5 md:p-6 rounded-2xl max-w-md w-full max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-start mb-3">
+        <div class="min-w-0">
+          <h3 class="text-lg font-extrabold text-gray-800 font-mono truncate" id="mngCode">—</h3>
+          <p class="text-sm text-gray-500 truncate" id="mngName">—</p>
+        </div>
+        <button onclick="closeManage()" class="text-gray-400 hover:text-gray-700 text-3xl leading-none font-light ml-2">×</button>
+      </div>
+      <div id="mngBadges" class="flex flex-wrap gap-1 mb-4"></div>
+      <div id="mngInfo" class="bg-slate-50 rounded-xl p-3 text-sm space-y-1 mb-4"></div>
+      <div id="mngActions"></div>
     </div>
   </div>
 
@@ -287,7 +318,7 @@
       let newId = generatePlateId(); if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
       db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date(), vouchers: [] })
       .then(() => {
-        const link = `https://petfind-omega.vercel.app/scan.html?id=${newId}`;
+        const link = `https://chochepet.vercel.app/scan.html?id=${newId}`;
         showQR(link, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`);
         document.getElementById('petName').value = ""; listenTags();
       })
@@ -309,124 +340,187 @@
       } catch(e) { alert("Error al cambiar plan: " + friendlyError(e)); }
     }
 
+    let tagsCache = {};
+    let currentManageId = null;
+
+    window.filterTags = function() {
+      const q = (document.getElementById('tagSearch')?.value || "").trim().toLowerCase();
+      document.querySelectorAll('#tagsList tr[data-key]').forEach(tr => {
+        tr.style.display = (!q || tr.dataset.key.includes(q)) ? '' : 'none';
+      });
+    }
+
+    function badgesFor(tag) {
+      const plan = tag.plan || 'basic';
+      const out = [];
+      out.push(plan === 'basic'
+        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">BASIC</span>'
+        : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">PREMIUM</span>');
+      out.push(tag.claimed
+        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">Reclamada</span>'
+        : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-500">Sin reclamar</span>');
+      if (plan !== 'basic' && tag.claimed) {
+        if (tag.subscriptionExpires) {
+          const exp = expToDate(tag.subscriptionExpires);
+          if (isNaN(exp.getTime())) {
+            out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Fecha invalida</span>');
+          } else if (exp > new Date()) {
+            const d = Math.ceil((exp - new Date()) / 86400000);
+            out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold ${d <= 5 ? 'bg-orange-200 text-orange-800 animate-pulse' : 'bg-green-100 text-green-700'}">Activo &middot; ${d}d</span>`);
+          } else {
+            out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Vencida</span>');
+          }
+        } else {
+          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">Sin activar</span>');
+        }
+        if (typeof tag.subscriptionExpires === 'string') {
+          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-200 text-orange-800" title="Formato antiguo: usa el boton Normalizar del modal de gestion">&#128295;</span>');
+        }
+        if (tag.paymentStatus === 'pending') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-200 text-yellow-800 animate-pulse">Pago pendiente</span>');
+        else if (tag.paymentStatus === 'approved') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">Pago aprobado</span>');
+        else if (tag.paymentStatus === 'rejected') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-200 text-red-700">Pago rechazado</span>');
+        const vc = (tag.vouchers || []).length;
+        if (vc > 0) out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-100 text-orange-700">${'🧾'} ${vc}</span>`);
+      }
+      return out.join('');
+    }
+
     function listenTags() {
       const list = document.getElementById('tagsList');
-      list.innerHTML = "<p class='text-gray-400 text-center py-4'>Cargando...</p>";
+      list.innerHTML = `<tr><td colspan="4"><div class="text-center text-gray-400 py-4">Cargando...</div></td></tr>`;
       db.collection("tags").orderBy("createdAt", "desc").get().then((querySnapshot) => {
+        tagsCache = {};
         list.innerHTML = "";
-        if (querySnapshot.empty) { list.innerHTML = "<p class='text-gray-400 text-center'>No hay medallas.</p>"; return; }
+        const counter = document.getElementById('tagCount');
+        if (querySnapshot.empty) {
+          list.innerHTML = `<tr><td colspan="4"><div class="text-center text-gray-400 py-6">No hay medallas todavia. Crea la primera con el formulario de arriba.</div></td></tr>`;
+          counter.innerText = '';
+          return;
+        }
+        counter.innerText = `(${querySnapshot.size})`;
+        let rows = "";
         querySnapshot.forEach((doc) => {
           const tag = doc.data();
-          const planTag = tag.plan || 'basic';
-          
-          const qrLink = `https://petfind-omega.vercel.app/scan.html?id=${doc.id}`;
-          const qrImgUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${qrLink}`;
-          const planColor = planTag === 'basic' ? 'bg-gray-200 text-gray-700' : 'bg-purple-100 text-purple-700';
-          
-          let subStatus = "N/A", subColor = "bg-gray-100", payBadge = "", alertBadge = "";
-          let actionsHTML = "";
-          
-          // Botón Ver QR
-          actionsHTML += `<button onclick="showQR('${qrLink}', '${qrImgUrl}')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Ver QR</button>`;
-          
-          if(planTag === 'basic') {
-            subStatus = "Plan Básico"; subColor = "bg-gray-100 text-gray-700";
-            
-            actionsHTML += `<button onclick="editPhone('${doc.id}', '${tag.phone || ''}')" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">✏️ WhatsApp</button>`;
-            
-            actionsHTML += `<button onclick="changePlan('${doc.id}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬆️ Subir a Premium</button>`;
-            
-            if(tag.phone) {
-              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabías que con el Plan Premium de ChochePet tu mascota tendría su perfil web e historial médico? Escríbeme para activarlo. 🐾')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🛍️ Ofrecer Premium</a>`;
-            } else {
-              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">N/A</div>`;
-            }
-            
-          } else if(tag.claimed) {
-            let daysLeft = null;
-            if(tag.subscriptionExpires) {
-              const exp = expToDate(tag.subscriptionExpires);
-              if(exp > new Date()) { 
-                subStatus = `Activo: ${exp.toLocaleDateString()}`; subColor = "bg-green-100 text-green-700";
-                daysLeft = Math.ceil((exp - new Date()) / (1000 * 60 * 60 * 24));
-                if(daysLeft <= 5) {
-                  alertBadge = `<span class="text-xs bg-orange-200 text-orange-700 px-2 py-0.5 rounded-full ml-1 animate-pulse">⚠️ ${daysLeft}d</span>`;
-                }
-              } else { subStatus = "Vencido"; subColor = "bg-red-100 text-red-700"; }
-            } else { subStatus = "Pendiente Pago"; subColor = "bg-yellow-100 text-yellow-700"; }
-
-            if(tag.paymentStatus === 'pending') payBadge = `<span class="text-xs bg-yellow-200 text-yellow-700 px-2 py-0.5 rounded-full ml-1 animate-pulse">Pago Pendiente</span>`;
-            else if(tag.paymentStatus === 'approved') payBadge = `<span class="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full ml-1">Aprobado</span>`;
-            else if(tag.paymentStatus === 'rejected') payBadge = `<span class="text-xs bg-red-200 text-red-700 px-2 py-0.5 rounded-full ml-1">Rechazado</span>`;
-            if(tag.subscriptionExpires && typeof tag.subscriptionExpires === 'string') {
-              alertBadge += `<span class="text-xs bg-orange-200 text-orange-800 px-2 py-0.5 rounded-full ml-1" title="Fecha guardada en formato antiguo (texto): la regla de suscripción no la puede leer y bloquea al dueño. Pulsa 🔧 Normalizar.">🔧 formato antiguo</span>`;
-            }
-
-            const vCount = tag.vouchers ? tag.vouchers.length : 0;
-            if(vCount > 0) {
-              actionsHTML += `<button onclick="showVouchers('${doc.id}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1 relative">🧾 Recibos (${vCount})</button>`;
-            } else {
-              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Sin Recibos</div>`;
-            }
-            
-            if(daysLeft !== null && daysLeft <= 5) {
-              actionsHTML += `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de ChochePet vence en ' + daysLeft + ' días. Recuerda renovarlo desde tu panel. 🐾')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">🔔 Recordar Pago</a>`;
-            } else {
-              actionsHTML += `<div class="bg-gray-50 text-gray-400 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">Al día</div>`;
-            }
-
-            actionsHTML += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬇️ Bajar a Básico</button>`;
-            
-            actionsHTML += `<div class="col-span-2 md:col-span-4 grid grid-cols-5 gap-1 bg-slate-100 p-1 rounded-lg mt-1">
-              <button onclick="adjustDays('${doc.id}', -30)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-30d</button>
-              <button onclick="adjustDays('${doc.id}', -1)" class="bg-red-100 text-red-700 py-1.5 rounded-md text-xs font-bold">-1d</button>
-              <button onclick="adjustDays('${doc.id}', 1)" class="bg-blue-100 text-blue-700 py-1.5 rounded-md text-xs font-bold">+1d</button>
-              <button onclick="adjustDays('${doc.id}', 30)" class="bg-green-100 text-green-700 py-1.5 rounded-md text-xs font-bold">+30d</button>
-              <button onclick="adjustDays('${doc.id}', 0)" class="bg-yellow-100 text-yellow-700 py-1.5 rounded-md text-xs font-bold" title="Normalizar: guarda la misma fecha en formato nuevo (Timestamp) sin cambiar los días. Corrige el bloqueo por formato antiguo.">🔧</button>
-            </div>`;
-            
-          } else {
-            // Premium no reclamado
-            subStatus = "Pendiente Reclamo"; subColor = "bg-gray-100 text-gray-700";
-            actionsHTML += `<div class="col-span-2 md:col-span-3 text-gray-500 text-sm text-center py-2 bg-slate-50 rounded-lg font-medium">Pendiente de Reclamo por Dueño</div>`;
-            actionsHTML += `<button onclick="changePlan('${doc.id}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-1">⬇️ Bajar</button>`;
-          }
-          
-          actionsHTML += `<button onclick="deleteTag('${doc.id}')" class="bg-red-100 text-red-700 px-3 py-2 rounded-lg text-sm font-bold col-span-2 md:col-span-4 flex items-center justify-center gap-1 mt-1">🗑️ Eliminar Medalla</button>`;
-          
-          list.innerHTML += `
-            <div class="flex flex-col p-3 bg-white rounded-xl border shadow-sm">
-              <div class="flex justify-between items-center mb-2 flex-wrap gap-1">
-                <div class="flex items-center gap-2 flex-wrap">
-                  <p class="font-bold text-gray-800 text-base">${tag.petName || 'Sin nombre'}</p>
-                  <span class="text-xs px-2 py-0.5 rounded-full font-bold ${planColor}">${planTag.toUpperCase()}</span>
-                  ${tag.claimed ? '<span class="text-xs bg-blue-200 text-blue-700 px-2 py-0.5 rounded-full">Reclamado</span>' : ''}
-                </div>
-              </div>
-              
-              <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm mb-3 border-b pb-2">
-                <span class="font-mono font-bold text-blue-600 truncate">🛡️ ${doc.id}</span>
-                <span class="text-gray-500 text-right truncate">📞 ${tag.phone || 'Sin asignar'}</span>
-              </div>
-              
-              <div class="flex justify-between items-center mb-3 flex-wrap gap-1">
-                <div class="flex gap-1 flex-wrap">
-                  <span class="text-xs px-2 py-0.5 rounded-full font-bold ${subColor}">${subStatus}</span>
-                  ${payBadge}
-                </div>
-                ${alertBadge}
-              </div>
-              
-              <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                ${actionsHTML}
-              </div>
-            </div>`;
+          tagsCache[doc.id] = tag;
+          const displayName = tag.internalName || tag.petName || '';
+          const key = (doc.id + ' ' + displayName + ' ' + (tag.petName || '')).toLowerCase();
+          rows += `
+            <tr data-key="${key}">
+              <td class="py-2.5 pr-3 font-mono font-bold text-blue-600 whitespace-nowrap">${doc.id}</td>
+              <td class="py-2.5 pr-3 max-w-[200px]">
+                <span id="tagname-${doc.id}" onclick="editName('${doc.id}')" title="Click para editar el nombre interno" class="cursor-pointer hover:bg-blue-50 rounded-lg px-2 py-1 -ml-2 inline-flex items-center gap-1 max-w-full">
+                  <span class="truncate font-medium text-gray-800">${displayName || 'Sin nombre'}</span><span class="text-gray-300 text-xs">&#9998;</span>
+                </span>
+              </td>
+              <td class="py-2.5 pr-3"><div class="flex gap-1 flex-wrap">${badgesFor(tag)}</div></td>
+              <td class="py-2.5 text-right whitespace-nowrap">
+                <button onclick="openManage('${doc.id}')" class="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold">&#9881;&#65039; Gestionar</button>
+              </td>
+            </tr>`;
         });
+        list.innerHTML = rows;
+        filterTags();
       }).catch((error) => {
         console.error("Error Firebase: ", error);
         list.innerHTML = "<p class='text-red-400 text-center p-4 bg-red-50 rounded-xl text-sm'>" + error.message + "</p>";
       });
     }
+
+    window.editName = function(tagId) {
+      const tag = tagsCache[tagId] || {};
+      const current = tag.internalName || tag.petName || '';
+      const cell = document.getElementById('tagname-' + tagId);
+      if (!cell) return;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = current;
+      input.className = 'w-full max-w-[200px] border border-blue-400 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200';
+      cell.replaceWith(input);
+      input.focus();
+      input.select();
+      let done = false;
+      const finish = async (save) => {
+        if (done) return;
+        done = true;
+        const v = input.value.trim();
+        try {
+          if (save && v && v !== current) {
+            await db.collection("tags").doc(tagId).update({ internalName: v });
+            if (currentManageId === tagId) document.getElementById('mngName').innerText = v;
+          }
+        } catch (e) { alert("Error al guardar el nombre: " + friendlyError(e)); }
+        listenTags();
+      };
+      input.onblur = () => finish(true);
+      input.onkeydown = (ev) => { if (ev.key === 'Enter') input.blur(); if (ev.key === 'Escape') finish(false); };
+    }
+
+    window.openManage = function(tagId) {
+      const tag = tagsCache[tagId];
+      if (!tag) return;
+      currentManageId = tagId;
+      const plan = tag.plan || 'basic';
+      const vc = (tag.vouchers || []).length;
+      document.getElementById('mngCode').innerText = '\u{1F6E1}\uFE0F ' + tagId;
+      document.getElementById('mngName').innerText = tag.internalName || tag.petName || 'Sin nombre interno';
+      document.getElementById('mngBadges').innerHTML = badgesFor(tag);
+      let expTxt = '-', daysLeft = null;
+      if (plan !== 'basic' && tag.subscriptionExpires) {
+        const exp = expToDate(tag.subscriptionExpires);
+        if (isNaN(exp.getTime())) expTxt = 'Fecha invalida (usa Normalizar)';
+        else if (exp > new Date()) {
+          daysLeft = Math.ceil((exp - new Date()) / 86400000);
+          expTxt = `${exp.toLocaleDateString()} (${daysLeft}d restantes)`;
+        } else expTxt = `${exp.toLocaleDateString()} (vencida)`;
+      }
+      document.getElementById('mngInfo').innerHTML = `
+        <p><strong>WhatsApp del due\u00F1o:</strong> ${tag.phone || 'Sin asignar'}</p>
+        <p><strong>Vence:</strong> ${plan === 'basic' ? 'N/A (Plan B\u00E1sico)' : expTxt}</p>
+        <p><strong>Recibos:</strong> ${vc}</p>
+        <p class="text-xs text-gray-400 break-all"><strong>ID due\u00F1o:</strong> ${tag.ownerId || '-'}</p>`;
+      const waSales = tag.phone ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabias que con el Plan Premium de ChochePet tu mascota tendria su perfil web e historial medico? Escribeme para activarlo. \u{1F43E}')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F6CD}'} Ofrecer Premium</a>` : '';
+      const waRenew = (tag.phone && daysLeft !== null && daysLeft <= 5) ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de ChochePet vence en ' + daysLeft + ' dias. Recuerda renovarlo desde tu panel. \u{1F43E}')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F514}'} Recordar Pago</a>` : '';
+      const safePhone = (tag.phone || '').replace(/'/g, '');
+      document.getElementById('mngActions').innerHTML = `
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Suscripcion</h4>
+        <div class="grid grid-cols-5 gap-1.5 mb-4">
+          <button onclick="closeManage(); adjustDays('${tagId}', -30)" class="bg-red-100 text-red-700 py-2 rounded-lg text-xs font-bold">-30d</button>
+          <button onclick="closeManage(); adjustDays('${tagId}', -1)" class="bg-red-100 text-red-700 py-2 rounded-lg text-xs font-bold">-1d</button>
+          <button onclick="closeManage(); adjustDays('${tagId}', 1)" class="bg-blue-100 text-blue-700 py-2 rounded-lg text-xs font-bold">+1d</button>
+          <button onclick="closeManage(); adjustDays('${tagId}', 30)" class="bg-green-100 text-green-700 py-2 rounded-lg text-xs font-bold">+30d</button>
+          <button onclick="closeManage(); adjustDays('${tagId}', 0)" class="bg-yellow-100 text-yellow-700 py-2 rounded-lg text-xs font-bold" title="Normalizar: guarda la misma fecha en formato Timestamp sin cambiar los dias">&#128295;</button>
+        </div>
+        <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Acciones</h4>
+        <div class="grid grid-cols-2 gap-1.5 mb-4">
+          ${plan === 'basic'
+            ? `<button onclick="closeManage(); changePlan('${tagId}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">&#11014;&#65039; Subir a Premium</button>`
+            : `<button onclick="closeManage(); changePlan('${tagId}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-bold">&#11015;&#65039; Bajar a Basico</button>`}
+          <button onclick="closeManage(); showVouchers('${tagId}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-sm font-bold">${'\u{1F9FE}'} Recibos (${vc})</button>
+          <button onclick="openQRFromManage('${tagId}')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">Ver QR</button>
+          <button onclick="closeManage(); editPhone('${tagId}', '${safePhone}')" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-xl text-sm font-bold">&#9998; WhatsApp</button>
+          <a href="https://chochepet.vercel.app/scan.html?id=${tagId}" target="_blank" class="bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold text-center">&#128065; Ver perfil</a>
+          ${waSales}${waRenew}
+        </div>
+        <button onclick="deleteTag('${tagId}')" class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2.5 rounded-xl text-sm font-bold">${'\u{1F5D1}'} Eliminar Medalla</button>`;
+      const m = document.getElementById('manageModal');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+
+    window.openQRFromManage = function(tagId) {
+      const qrLink = `https://chochepet.vercel.app/scan.html?id=${tagId}`;
+      closeManage();
+      showQR(qrLink, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(qrLink)}`);
+    }
+
+    window.closeManage = function() {
+      const m = document.getElementById('manageModal');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      currentManageId = null;
+    }
+
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && currentManageId) closeManage(); });
 
     window.showQR = function(link, imgUrl) { currentQRLink = link; document.getElementById('qrImg').src = imgUrl; document.getElementById('qrLink').innerText = link; document.getElementById('qrModal').classList.remove('hidden'); document.getElementById('qrModal').classList.add('flex'); }
     window.closeQRModal = function() { document.getElementById('qrModal').classList.add('hidden'); }
@@ -448,7 +542,7 @@
         if (days === 0) alert("🔧 Fecha normalizada al formato nuevo (Timestamp). Si el perfil estaba activo, el dueño ya puede editar; si estaba vencido, dale +30d para activarlo.");
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
-    window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar?")) return; try { await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
+    window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
   </script>
 </body>
 </html>
