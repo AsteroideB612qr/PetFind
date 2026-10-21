@@ -87,6 +87,33 @@
       <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla y QR</button>
     </div>
 
+    <!-- RESUMEN DEL INVENTARIO -->
+    <div class="mb-8">
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
+          <p class="text-2xl md:text-3xl font-extrabold text-gray-800" id="stTotal">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🏷️ Existentes</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
+          <p class="text-2xl md:text-3xl font-extrabold text-blue-600" id="stClaimed">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">✅ Reclamadas</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
+          <p class="text-2xl md:text-3xl font-extrabold text-purple-600" id="stPremium">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">👑 Premium</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center">
+          <p class="text-2xl md:text-3xl font-extrabold text-orange-500" id="stBasic">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🐶 Básico</p>
+        </div>
+        <div class="bg-white p-4 rounded-2xl shadow-xl border border-gray-100 text-center col-span-2 md:col-span-1">
+          <p class="text-2xl md:text-3xl font-extrabold text-emerald-600" id="stAvailable">0</p>
+          <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">📦 Disponibles</p>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium y 🐶 Básico cuentan solo medallas <b>reclamadas</b> · 📦 Disponibles = aún sin reclamar</p>
+    </div>
+
     <div class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
       <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario <span id="tagCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
@@ -120,6 +147,7 @@
         <span id="qrLink" class="text-xs text-gray-600 break-all text-left flex-1 mr-2">link</span>
         <button onclick="copyQRLink()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap">📋 Copiar</button>
       </div>
+      <p class="text-xs text-gray-400 mb-4">✅ Los QR impresos con el dominio antiguo siguen funcionando: redirigen automáticamente a este dominio nuevo.</p>
       <button onclick="closeQRModal()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-base">Cerrar</button>
     </div>
   </div>
@@ -385,6 +413,20 @@
       return out.join('');
     }
 
+    // Resumen del inventario: total, reclamadas y desglose por plan
+    function updateStats() {
+      const all = Object.values(tagsCache);
+      const claimed = all.filter(t => t.claimed);
+      const prem = claimed.filter(t => (t.plan || 'basic') === 'premium').length;
+      const bas = claimed.filter(t => (t.plan || 'basic') !== 'premium').length;
+      const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
+      set('stTotal', all.length);
+      set('stClaimed', claimed.length);
+      set('stPremium', prem);
+      set('stBasic', bas);
+      set('stAvailable', all.length - claimed.length);
+    }
+
     function listenTags() {
       const list = document.getElementById('tagsList');
       list.innerHTML = `<tr><td colspan="4"><div class="text-center text-gray-400 py-4">Cargando...</div></td></tr>`;
@@ -395,6 +437,7 @@
         if (querySnapshot.empty) {
           list.innerHTML = `<tr><td colspan="4"><div class="text-center text-gray-400 py-6">No hay medallas todavia. Crea la primera con el formulario de arriba.</div></td></tr>`;
           counter.innerText = '';
+          updateStats();
           return;
         }
         counter.innerText = `(${querySnapshot.size})`;
@@ -420,6 +463,7 @@
         });
         list.innerHTML = rows;
         filterTags();
+        updateStats();
       }).catch((error) => {
         console.error("Error Firebase: ", error);
         list.innerHTML = "<p class='text-red-400 text-center p-4 bg-red-50 rounded-xl text-sm'>" + error.message + "</p>";
@@ -496,7 +540,7 @@
             ? `<button onclick="closeManage(); changePlan('${tagId}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">&#11014;&#65039; Subir a Premium</button>`
             : `<button onclick="closeManage(); changePlan('${tagId}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-bold">&#11015;&#65039; Bajar a Basico</button>`}
           <button onclick="closeManage(); showVouchers('${tagId}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-sm font-bold">${'\u{1F9FE}'} Recibos (${vc})</button>
-          <button onclick="openQRFromManage('${tagId}')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">Ver QR</button>
+          <button onclick="openQRFromManage('${tagId}')" title="Genera el QR con el dominio nuevo (chochepet.vercel.app). Sirve para reimprimir medallas creadas antes del cambio de dominio." class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">Ver QR</button>
           <button onclick="closeManage(); editPhone('${tagId}', '${safePhone}')" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-xl text-sm font-bold">&#9998; WhatsApp</button>
           <a href="https://chochepet.vercel.app/scan.html?id=${tagId}" target="_blank" class="bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold text-center">&#128065; Ver perfil</a>
           ${waSales}${waRenew}
