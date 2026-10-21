@@ -88,7 +88,7 @@
     function applyLock() {
       if (isDemo) return;
       const active = isSubscriptionActive();
-      ['profileCard', 'medicalCard'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('locked', !active); });
+      ['basicInfoDetails', 'vetDetails', 'medicalCard'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('locked', !active); });
       const banner = document.getElementById('lockBanner');
       if (banner) banner.style.display = active ? 'none' : 'block';
     }
@@ -147,28 +147,28 @@
       const isActive = isSubscriptionActive();
       const logoutBtn = isDemo ? `<a href="landing.html" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">🚪 Salir de Demo</a>` : `<button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">Cerrar Sesión</button>`;
       const publicLink = isDemo ? 'scan.html?demo=true' : 'scan.html?id=' + tagId;
-      const lockBanner = isDemo ? '' : `<div id="lockBanner" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-xl mb-6" style="${isActive ? 'display:none' : ''}"><p class="font-bold text-yellow-800">🔒 Perfil bloqueado — Suscripción inactiva</p><p class="text-sm text-yellow-700 mt-1">Realiza tu pago desde el panel de Membresía (abajo). Cuando el administrador valide tu recibo y active tu suscripción, tu perfil se desbloqueará automáticamente.</p></div>`;
+      const lockBanner = isDemo ? '' : `<div id="lockBanner" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-xl mb-6" style="${isActive ? 'display:none' : ''}"><p class="font-bold text-yellow-800">⭐ Panel Básico — tu perfil sigue funcionando</p><p class="text-sm text-yellow-700 mt-1">Puedes editar la <b>Foto</b>, el <b>Nombre</b> y tu <b>WhatsApp</b>. Activa Premium para desbloquear la ficha médica completa: paga desde Membresía (abajo) y cuando el administrador valide tu recibo, todo se desbloquea automáticamente.</p></div>`;
       
       document.getElementById('content').innerHTML = `
         <div class="flex flex-col items-center mb-8 pt-8">
           <a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 mb-2 cursor-pointer hover:opacity-80 transition"></a>
-          <h1 class="text-3xl font-extrabold text-slate-800">Panel Premium</h1>${logoutBtn}
+          <h1 class="text-3xl font-extrabold text-slate-800">${isActive ? 'Panel Premium' : 'Panel Básico'}</h1>${logoutBtn}
         </div>
         
         ${lockBanner}
 
-        <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+        <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6" ${!isDemo && !isActive ? 'open' : ''}>
           <summary id="membershipSummary" class="p-6 select-none font-bold text-lg flex justify-between items-center w-full"></summary>
           <div id="membershipContent" class="p-6 pt-0 space-y-4"></div>
         </details>
 
-        <div id="profileCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 ${!isDemo && !isActive ? 'locked' : ''}">
+        <div id="profileCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
           <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center"><h2 class="text-xl font-bold">Perfil de la Mascota</h2><span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Placa: ${isDemo ? 'DEMO123' : tagId}</span></div>
           <div class="p-6 space-y-5">
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Nombre</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}></div></div><input type="text" id="petName" value="${petState.name || ''}" class="w-full p-3 border rounded-xl"></div>
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Foto</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}></div></div><div class="flex flex-col items-center mb-4 mt-2"><img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white"><input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)"><button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button></div></div>
             
-            <details class="bg-slate-50 p-4 rounded-xl border">
+            <details id="basicInfoDetails" class="bg-slate-50 p-4 rounded-xl border">
               <summary class="font-bold text-sm text-slate-600 select-none">📋 Información Básica y Médica</summary>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Especie</label><input type="checkbox" id="showSpecies" class="w-5 h-5 text-blue-600 rounded" ${petState.showSpecies ? 'checked' : ''}></div><input type="text" id="species" value="${petState.species || ''}" class="w-full p-2 border rounded-lg"></div>
@@ -195,7 +195,7 @@
               </div>
             </details>
 
-            <details class="bg-green-50 p-4 rounded-xl border border-green-200">
+            <details id="vetDetails" class="bg-green-50 p-4 rounded-xl border border-green-200">
               <summary class="font-bold text-sm text-green-800 select-none">👨‍⚕️ Datos del Veterinario</summary>
               <div class="mt-4 space-y-4">
                 <p class="text-xs text-gray-500">🔒 Datos privados: solo tú los ves y los usas para enviar recibos al vet. <b>Nunca aparecen en el perfil público.</b></p>
@@ -253,8 +253,8 @@
       
       const summaryText = isActive 
         ? `✅ Membresía Activa ${isDemo ? '(Demo)' : '- Vence el ' + expDt.toLocaleDateString()}` 
-        : `⚠️ Membresía Vencida`;
-      const summaryColor = isActive ? 'text-green-600' : 'text-red-600';
+        : `⭐ Plan Básico — Premium sin activar`;
+      const summaryColor = isActive ? 'text-green-600' : 'text-amber-600';
       
       document.getElementById('membershipSummary').className = `p-6 select-none font-bold text-lg flex justify-between items-center w-full ${summaryColor}`;
       document.getElementById('membershipSummary').innerHTML = `<span>${summaryText}</span><span class="text-xs text-slate-400 font-normal">Toca para gestionar</span>`;
@@ -269,17 +269,11 @@
       else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola ChochePet')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}`; } 
       else { membershipHTML = `${paymentForm}`; }
       
-      if(!isDemo) { membershipHTML += `<div class="text-center mt-6 border-t border-slate-200 pt-6"><button onclick="downgradeToBasic()" class="text-red-500 hover:text-red-700 text-sm font-bold">⚠️ Bajar a Plan Básico (Se perderá el perfil)</button></div>`; }
+      // "Bajar a Básico" eliminado (Ronda 13): el modo lo decide el pago de la suscripción.
       
       document.getElementById('membershipContent').innerHTML = membershipHTML;
     }
-    window.downgradeToBasic = async function() {
-      if(!confirm("⚠️ ADVERTENCIA: Si bajas a Plan Básico, PERDERÁS TODA LA INFORMACIÓN de forma irreversible. ¿Estás seguro?")) return;
-      await db.collection("tags").doc(tagId).update({ plan: 'basic', claimed: false });
-      await db.collection("pets").doc(tagId).delete().catch(()=>{});
-      alert("Has cambiado a Plan Básico. Cerrando sesión...");
-      window.location.href = 'landing.html';
-    }
+    // downgradeToBasic eliminado (Ronda 13): el modo Premium/Básico lo define la suscripción.
 
     window.addEvent = function() { 
       if(isDemo) return alert("Demo: No se pueden agregar eventos."); 
@@ -383,11 +377,13 @@
     window.savePublicProfile = async function() { 
       if(isDemo) return alert("Demo: No guardar."); 
       const p=document.getElementById('petCountry').value+document.getElementById('petPhone').value; 
-      const vp=document.getElementById('vetCountry').value+document.getElementById('vetPhone').value; 
-      const data = { photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p, vetName: document.getElementById('vetName').value, vetPhone: vp, showVet: false, species: document.getElementById('species').value, breed: document.getElementById('breed').value, sex: document.getElementById('sex').value, birthDate: document.getElementById('birthDate').value, weight: document.getElementById('weight').value, diet: document.getElementById('diet').value, color: document.getElementById('color').value, sterilized: document.getElementById('sterilized').value, vaccines: document.getElementById('vaccines').value, lastDeworming: document.getElementById('lastDeworming').value, showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked, showSpecies: document.getElementById('showSpecies').checked, showBreed: document.getElementById('showBreed').checked, showSex: document.getElementById('showSex').checked, showBirthDate: document.getElementById('showBirthDate').checked, showAge: document.getElementById('showAge').checked, showWeight: document.getElementById('showWeight').checked, showDiet: document.getElementById('showDiet').checked, showColor: document.getElementById('showColor').checked, showSterilized: document.getElementById('showSterilized').checked, showVaccines: document.getElementById('showVaccines').checked, showDeworming: document.getElementById('showDeworming').checked, showDescription: document.getElementById('showDescription').checked, showMedicalAlerts: document.getElementById('showMedicalAlerts').checked }; 
+      const active = isSubscriptionActive(); 
+      const data = active
+        ? { photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, description: document.getElementById('petDesc').value, medicalAlerts: document.getElementById('petAlerts').value, ownerPhone: p, vetName: document.getElementById('vetName').value, vetPhone: document.getElementById('vetCountry').value+document.getElementById('vetPhone').value, showVet: false, species: document.getElementById('species').value, breed: document.getElementById('breed').value, sex: document.getElementById('sex').value, birthDate: document.getElementById('birthDate').value, weight: document.getElementById('weight').value, diet: document.getElementById('diet').value, color: document.getElementById('color').value, sterilized: document.getElementById('sterilized').value, vaccines: document.getElementById('vaccines').value, lastDeworming: document.getElementById('lastDeworming').value, showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked, showSpecies: document.getElementById('showSpecies').checked, showBreed: document.getElementById('showBreed').checked, showSex: document.getElementById('showSex').checked, showBirthDate: document.getElementById('showBirthDate').checked, showAge: document.getElementById('showAge').checked, showWeight: document.getElementById('showWeight').checked, showDiet: document.getElementById('showDiet').checked, showColor: document.getElementById('showColor').checked, showSterilized: document.getElementById('showSterilized').checked, showVaccines: document.getElementById('showVaccines').checked, showDeworming: document.getElementById('showDeworming').checked, showDescription: document.getElementById('showDescription').checked, showMedicalAlerts: document.getElementById('showMedicalAlerts').checked }
+        : { photoUrl: window.base64Photo || document.getElementById('imgPreview').src, name: document.getElementById('petName').value, ownerPhone: p, showName: document.getElementById('showName').checked, showPhoto: document.getElementById('showPhoto').checked }; 
       try {
         await db.collection("pets").doc(tagId).update(data); await db.collection("tags").doc(tagId).update({ phone: p }); 
-        alert("¡Perfil guardado!"); 
+        alert(active ? "¡Perfil guardado!" : "¡Perfil guardado! (Modo Básico: se actualizan solo Foto, Nombre y WhatsApp)"); 
       } catch(e) { const m=(e&&e.message)||''; if((e&&e.code==='permission-denied')||m.indexOf('permission')>=0){ alert('🔒 No se pudo guardar: tu suscripción Premium no consta como activa. Si ya pagaste, escribe a soporte: el administrador debe activar tu medalla desde su panel (botón +30d o 🔧).'); } else { alert('No se pudo guardar: ' + m); } }
     }
   </script>

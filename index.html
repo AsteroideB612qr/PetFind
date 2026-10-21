@@ -13,6 +13,12 @@
   <script>
     const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
   </script>
+  <style>
+    #invBox summary { list-style: none; cursor: pointer; }
+    #invBox summary::-webkit-details-marker { display: none; }
+    #invBox summary::after { content: '▸'; color: #94a3b8; font-size: 1.4rem; line-height: 1; transition: transform .2s; display: inline-block; }
+    #invBox[open] summary::after { transform: rotate(90deg); }
+  </style>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen p-4 md:p-8">
 
@@ -81,7 +87,7 @@
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básico</option><option value="premium">Premium</option></select></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo de placa</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básica</option><option value="premium">Premium</option></select></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
       </div>
       <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla y QR</button>
@@ -115,16 +121,17 @@
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🧾 Recibos Pendientes</p>
         </div>
       </div>
-      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium y 🐶 Básico cuentan solo medallas <b>reclamadas</b> · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos)</p>
+      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos)</p>
     </div>
 
-    <div class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
-      <div class="flex justify-between items-center mb-4 flex-wrap gap-2">
+    <details id="invBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
+      <summary class="select-none flex justify-between items-center flex-wrap gap-2">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">📋 Inventario <span id="tagCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
-        <div class="flex gap-2">
-          <input id="tagSearch" type="text" placeholder="🔎 Buscar código o nombre..." oninput="filterTags()" class="p-2 border rounded-xl text-sm w-40 md:w-56">
-          <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄</button>
-        </div>
+      </summary>
+      <p class="text-xs text-gray-400 mt-1">Toca el título para desplegar o plegar la lista.</p>
+      <div class="flex justify-end mt-4 mb-4 flex-wrap gap-2">
+        <input id="tagSearch" type="text" placeholder="🔎 Buscar código o nombre..." oninput="filterTags()" class="p-2 border rounded-xl text-sm w-40 md:w-56">
+        <button onclick="listenTags()" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold hover:bg-blue-200">🔄</button>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm min-w-[620px]">
@@ -139,7 +146,7 @@
           <tbody id="tagsList" class="divide-y divide-gray-100"></tbody>
         </table>
       </div>
-    </div>
+    </details>
   </div>
 
   <!-- MODAL DEL QR -->
@@ -357,21 +364,7 @@
       .catch(e => alert("Error al crear la medalla: " + friendlyError(e)));
     }
 
-    window.changePlan = async function(tagId, newPlan) {
-      try {
-        if(newPlan === 'basic') {
-          if(!confirm("¿Bajar a Básico? Se borrará el perfil de la mascota y el QR irá directo a WhatsApp.")) return;
-          await db.collection("tags").doc(tagId).update({ plan: 'basic', claimed: false });
-          await db.collection("pets").doc(tagId).delete().catch(()=>{});
-        } else {
-          if(!confirm("¿Subir a Premium? El dueño deberá escanear el QR para reclamar su nuevo perfil.")) return;
-          await db.collection("tags").doc(tagId).update({ plan: 'premium', claimed: false });
-          await db.collection("pets").doc(tagId).delete().catch(()=>{});
-        }
-        alert("Plan actualizado."); listenTags();
-      } catch(e) { alert("Error al cambiar plan: " + friendlyError(e)); }
-    }
-
+    // changePlan eliminado (Ronda 13): el modo Premium/Básico lo define la suscripción del dueño.
     let tagsCache = {};
     let currentManageId = null;
 
@@ -383,37 +376,41 @@
     }
 
     function badgesFor(tag) {
-      const plan = tag.plan || 'basic';
       const out = [];
-      out.push(plan === 'basic'
-        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">BASIC</span>'
-        : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">PREMIUM</span>');
-      out.push(tag.claimed
-        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">Reclamada</span>'
-        : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-500">Sin reclamar</span>');
-      if (plan !== 'basic' && tag.claimed) {
-        if (tag.subscriptionExpires) {
-          const exp = expToDate(tag.subscriptionExpires);
-          if (isNaN(exp.getTime())) {
-            out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Fecha invalida</span>');
-          } else if (exp > new Date()) {
-            const d = Math.ceil((exp - new Date()) / 86400000);
-            out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold ${d <= 5 ? 'bg-orange-200 text-orange-800 animate-pulse' : 'bg-green-100 text-green-700'}">Activo &middot; ${d}d</span>`);
-          } else {
-            out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Vencida</span>');
-          }
-        } else {
-          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">Sin activar</span>');
-        }
-        if (typeof tag.subscriptionExpires === 'string') {
-          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-200 text-orange-800" title="Formato antiguo: usa el boton Normalizar del modal de gestion">&#128295;</span>');
-        }
-        if (tag.paymentStatus === 'pending') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-200 text-yellow-800 animate-pulse">Pago pendiente</span>');
-        else if (tag.paymentStatus === 'approved') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">Pago aprobado</span>');
-        else if (tag.paymentStatus === 'rejected') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-200 text-red-700">Pago rechazado</span>');
-        const vc = (tag.vouchers || []).length;
-        if (vc > 0) out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-100 text-orange-700">${'🧾'} ${vc}</span>`);
+      const activeSub = !!(tag.claimed && tag.subscriptionExpires && expToDate(tag.subscriptionExpires) > new Date());
+      if (!tag.claimed) {
+        // Sin reclamar: mostramos el tipo de kit con el que fue creada la placa
+        out.push((tag.plan || 'basic') === 'basic'
+          ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">Kit BASIC</span>'
+          : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">Kit PREMIUM</span>');
+        out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-500">Sin reclamar</span>');
+        return out.join('');
       }
+      // Reclamada: el modo lo define la suscripción (Premium activa o Básico)
+      out.push(activeSub
+        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">PREMIUM</span>'
+        : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">BÁSICO</span>');
+      if (tag.subscriptionExpires) {
+        const exp = expToDate(tag.subscriptionExpires);
+        if (isNaN(exp.getTime())) {
+          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Fecha invalida</span>');
+        } else if (exp > new Date()) {
+          const d = Math.ceil((exp - new Date()) / 86400000);
+          out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold ${d <= 5 ? 'bg-orange-200 text-orange-800 animate-pulse' : 'bg-green-100 text-green-700'}">Activo &middot; ${d}d</span>`);
+        } else {
+          out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700">Vencida</span>');
+        }
+      } else {
+        out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-100 text-yellow-700">Sin activar</span>');
+      }
+      if (typeof tag.subscriptionExpires === 'string') {
+        out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-200 text-orange-800" title="Formato antiguo: usa el boton Normalizar del modal de gestion">&#128295;</span>');
+      }
+      if (tag.paymentStatus === 'pending') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-yellow-200 text-yellow-800 animate-pulse">Pago pendiente</span>');
+      else if (tag.paymentStatus === 'approved') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-blue-100 text-blue-700">Pago aprobado</span>');
+      else if (tag.paymentStatus === 'rejected') out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-200 text-red-700">Pago rechazado</span>');
+      const vc = (tag.vouchers || []).length;
+      if (vc > 0) out.push(`<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-100 text-orange-700">${'🧾'} ${vc}</span>`);
       return out.join('');
     }
 
@@ -421,8 +418,9 @@
     function updateStats() {
       const all = Object.values(tagsCache);
       const claimed = all.filter(t => t.claimed);
-      const prem = claimed.filter(t => (t.plan || 'basic') === 'premium').length;
-      const bas = claimed.filter(t => (t.plan || 'basic') !== 'premium').length;
+      const now = new Date();
+      const prem = claimed.filter(t => t.subscriptionExpires && expToDate(t.subscriptionExpires) > now).length;
+      const bas = claimed.length - prem;
       const set = (id, v) => { const el = document.getElementById(id); if (el) el.innerText = v; };
       set('stTotal', all.length);
       set('stClaimed', claimed.length);
@@ -514,13 +512,13 @@
       const tag = tagsCache[tagId];
       if (!tag) return;
       currentManageId = tagId;
-      const plan = tag.plan || 'basic';
       const vc = (tag.vouchers || []).length;
+      const activeSub = !!(tag.subscriptionExpires && expToDate(tag.subscriptionExpires) > new Date());
       document.getElementById('mngCode').innerText = '\u{1F6E1}\uFE0F ' + tagId;
       document.getElementById('mngName').innerText = tag.internalName || tag.petName || 'Sin nombre interno';
       document.getElementById('mngBadges').innerHTML = badgesFor(tag);
       let expTxt = '-', daysLeft = null;
-      if (plan !== 'basic' && tag.subscriptionExpires) {
+      if (tag.subscriptionExpires) {
         const exp = expToDate(tag.subscriptionExpires);
         if (isNaN(exp.getTime())) expTxt = 'Fecha invalida (usa Normalizar)';
         else if (exp > new Date()) {
@@ -530,10 +528,10 @@
       }
       document.getElementById('mngInfo').innerHTML = `
         <p><strong>WhatsApp del due\u00F1o:</strong> ${tag.phone || 'Sin asignar'}</p>
-        <p><strong>Vence:</strong> ${plan === 'basic' ? 'N/A (Plan B\u00E1sico)' : expTxt}</p>
+        <p><strong>Vence:</strong> ${expTxt}</p>
         <p><strong>Recibos:</strong> ${vc}</p>
         <p class="text-xs text-gray-400 break-all"><strong>ID due\u00F1o:</strong> ${tag.ownerId || '-'}</p>`;
-      const waSales = tag.phone ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabias que con el Plan Premium de ChochePet tu mascota tendria su perfil web e historial medico? Escribeme para activarlo. \u{1F43E}')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F6CD}'} Ofrecer Premium</a>` : '';
+      const waSales = (tag.phone && !activeSub) ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabias que con el Plan Premium de ChochePet tu mascota tendria su perfil web e historial medico? Escribeme para activarlo. \u{1F43E}')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F6CD}'} Ofrecer Premium</a>` : '';
       const waRenew = (tag.phone && daysLeft !== null && daysLeft <= 5) ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de ChochePet vence en ' + daysLeft + ' dias. Recuerda renovarlo desde tu panel. \u{1F43E}')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F514}'} Recordar Pago</a>` : '';
       const safePhone = (tag.phone || '').replace(/'/g, '');
       document.getElementById('mngActions').innerHTML = `
@@ -547,9 +545,6 @@
         </div>
         <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Acciones</h4>
         <div class="grid grid-cols-2 gap-1.5 mb-4">
-          ${plan === 'basic'
-            ? `<button onclick="closeManage(); changePlan('${tagId}', 'premium')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">&#11014;&#65039; Subir a Premium</button>`
-            : `<button onclick="closeManage(); changePlan('${tagId}', 'basic')" class="bg-gray-100 text-gray-700 px-3 py-2 rounded-xl text-sm font-bold">&#11015;&#65039; Bajar a Basico</button>`}
           <button onclick="closeManage(); showVouchers('${tagId}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-sm font-bold">${'\u{1F9FE}'} Recibos (${vc})</button>
           <button onclick="openQRFromManage('${tagId}')" title="Genera el QR con el dominio nuevo (chochepet.vercel.app). Sirve para reimprimir medallas creadas antes del cambio de dominio." class="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-sm font-bold">Ver QR</button>
           <button onclick="closeManage(); editPhone('${tagId}', '${safePhone}')" class="bg-yellow-100 text-yellow-700 px-3 py-2 rounded-xl text-sm font-bold">&#9998; WhatsApp</button>
