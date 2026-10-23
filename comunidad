@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <title>ChochePet Comunidad · News, Mascotas Perdidas y Beneficios</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Roboto, sans-serif; }
+    html { scroll-behavior: smooth; }
+  </style>
+</head>
+<body class="bg-slate-50">
+
+  <!-- NAVBAR -->
+  <nav class="bg-white shadow-sm sticky top-0 z-40">
+    <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center gap-2">
+      <a href="landing.html"><img src="logo.png" alt="ChochePet" class="h-10 md:h-12"></a>
+      <div class="flex items-center gap-2 text-sm font-bold">
+        <a href="#news" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🗞️ News</a>
+        <a href="#perdidas" class="bg-red-100 text-red-700 px-3 py-2 rounded-xl hover:bg-red-200 transition">🚨 Perdidas</a>
+        <a href="#promos" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🎁 Beneficios</a>
+        <a href="landing.html" class="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 transition whitespace-nowrap">🐾 Quiero mi medalla</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ═══════════ CHOCHEPET NEWS ═══════════ -->
+  <section id="news" class="py-14 px-4 bg-white">
+    <div class="max-w-4xl mx-auto text-center">
+      <span class="text-blue-600 font-bold uppercase tracking-wide text-sm">El semanario de la manada</span>
+      <h2 class="text-3xl font-extrabold text-slate-800 mt-2 mb-8">🗞️ ChochePet News</h2>
+      <div id="newsCard" class="max-w-2xl mx-auto">
+        <p class="text-slate-400 animate-pulse">Cargando la edición vigente…</p>
+      </div>
+      <p class="text-xs text-gray-400 mt-6 max-w-lg mx-auto">Publicación semanal con noticias pet reales, agenda de actividades para tu mascota, juegos y horóscopo. La edición nueva reemplaza a la anterior: siempre tendrás la más reciente aquí.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════ MASCOTAS PERDIDAS ═══════════ -->
+  <section id="perdidas" class="py-14 px-4 bg-slate-100">
+    <div class="max-w-5xl mx-auto text-center">
+      <span class="text-red-600 font-bold uppercase tracking-wide text-sm">Red de búsqueda ChochePet</span>
+      <h2 class="text-3xl font-extrabold text-slate-800 mt-2 mb-3">🚨 Mascotas Perdidas</h2>
+      <p class="text-slate-500 mb-8 max-w-2xl mx-auto">Si reconoces alguna, contáctala por WhatsApp o llámala: cada minuto cuenta. Toca <b>Ver flyer</b> para abrir la tarjeta completa y <b>capturarla</b> para compartirla en tus redes.</p>
+      <div id="lostGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+        <p class="text-slate-400 animate-pulse col-span-full text-center">Buscando alertas activas…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════ PROMOCIONES ═══════════ -->
+  <section id="promos" class="py-14 px-4 bg-white">
+    <div class="max-w-5xl mx-auto text-center">
+      <span class="text-amber-600 font-bold uppercase tracking-wide text-sm">Red de beneficios</span>
+      <h2 class="text-3xl font-extrabold text-slate-800 mt-2 mb-3">🎁 Beneficios para la Comunidad</h2>
+      <p class="text-slate-500 mb-8 max-w-2xl mx-auto">Descuentos y promociones de nuestros locales aliados. Toca una tarjeta para ver los detalles y cómo hacerla válida.</p>
+      <div id="promoGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 text-left">
+        <p class="text-slate-400 animate-pulse col-span-full text-center">Cargando beneficios…</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-500 py-8 text-center text-sm">
+    <img src="logo.png" alt="ChochePet" class="h-12 mx-auto mb-4">
+    <p>© 2024-2026 ChochePet. Tu Choche, Tu Pet.</p>
+    <p class="text-xs mt-2">Hecho con 💙 para proteger a quienes más amas.</p>
+    <div class="mt-4 flex justify-center flex-wrap gap-4 text-xs">
+      <a href="landing.html" class="text-slate-400 hover:text-white underline">Inicio</a>
+      <a href="terminos.html" target="_blank" class="text-slate-400 hover:text-white underline">Términos de Servicio</a>
+      <a href="privacidad.html" target="_blank" class="text-slate-400 hover:text-white underline">Política de Privacidad</a>
+    </div>
+  </footer>
+
+  <!-- MODAL FLYER (capturable para redes) -->
+  <div id="flyerModal" class="fixed inset-0 bg-black/95 hidden z-50 overflow-y-auto" onclick="if(event.target===this)closeFlyer()">
+    <div class="min-h-full flex flex-col items-center p-4">
+      <div class="w-full max-w-sm flex justify-between items-center text-white mb-3">
+        <p class="text-xs text-slate-300">📲 Captura esta tarjeta y compártela</p>
+        <button onclick="closeFlyer()" title="Cerrar" class="text-slate-300 hover:text-white text-3xl leading-none font-light">×</button>
+      </div>
+      <div id="flyerCard" class="w-full max-w-sm"></div>
+      <button onclick="copyFlyerText()" class="mt-4 bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm border border-slate-600">📋 Copiar texto para WhatsApp</button>
+    </div>
+  </div>
+
+  <!-- MODAL DETALLE DE PROMO -->
+  <div id="promoModal" class="fixed inset-0 bg-black/80 hidden items-center justify-center p-4 z-50" onclick="if(event.target===this)closePromoModal()">
+    <div class="bg-white p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div id="promoDetail"></div>
+      <button onclick="closePromoModal()" class="mt-4 w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold text-base">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCqX-LAgu49o55vCvvR4h9_VOUBP6e5Tn0", authDomain: "petfind-50fb3.firebaseapp.com",
+      projectId: "petfind-50fb3", storageBucket: "petfind-50fb3.firebasestorage.app",
+      messagingSenderId: "1077014067959", appId: "1:1077014067959:web:b26d75c1b708b458b971f2"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ─── Utilidades ───
+    // Escapa TODA cadena que venga de Firestore antes de meterla en HTML
+    function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+    function tsMs(v) { return v && v.seconds ? v.seconds * 1000 : 0; }
+    function fmtDate(v) {
+      try { const d = v && v.seconds ? new Date(v.seconds * 1000) : new Date(v); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }); }
+      catch (e) { return ''; }
+    }
+    function fmtDay(v) {
+      try { const d = v && v.seconds ? new Date(v.seconds * 1000) : new Date(v); return isNaN(d.getTime()) ? '' : d.toLocaleDateString('es-PE', { day: 'numeric', month: 'long' }); }
+      catch (e) { return ''; }
+    }
+    function digits(p) { return String(p || '').replace(/\D/g, ''); }
+    function photoOrPaws(url, cls) {
+      return url
+        ? `<img src="${esc(url)}" alt="Foto de la mascota" class="${cls} object-cover">`
+        : `<div class="${cls} bg-slate-200 flex items-center justify-center text-6xl">🐾</div>`;
+    }
+
+    // ═══════════ 1. CHOCHEPET NEWS ═══════════
+    let newsState = null;
+    async function loadNews() {
+      const el = document.getElementById('newsCard');
+      try {
+        const snap = await db.collection('settings').doc('news').get();
+        if (!snap.exists) {
+          el.innerHTML = `<div class="bg-slate-100 border border-slate-200 rounded-3xl p-8"><p class="text-4xl mb-3">🗞️</p><p class="text-slate-600 font-bold">La primera edición está en camino…</p><p class="text-slate-400 text-sm mt-1">Vuelve el próximo domingo.</p></div>`;
+          return;
+        }
+        newsState = snap.data();
+        const ed = esc(newsState.edition || '—');
+        const fecha = fmtDate(newsState.publishedAt);
+        el.innerHTML = `
+          <div class="rounded-3xl overflow-hidden shadow-2xl text-left border-4" style="border-color:#D9A426;background:#22304E;">
+            <div class="p-6 md:p-8 text-white">
+              <p class="text-xs font-bold uppercase tracking-[0.3em]" style="color:#D9A426;">Semanario · Para la comunidad pet</p>
+              <h3 class="text-4xl md:text-5xl font-extrabold mt-2 tracking-tight" style="font-stretch:condensed;">CHOCHEPET NEWS</h3>
+              <div class="flex flex-wrap items-center gap-2 mt-4">
+                <span class="text-sm font-extrabold px-3 py-1 rounded-full text-slate-900" style="background:#D9A426;">Edición N° ${ed}</span>
+                ${fecha ? `<span class="text-xs text-slate-300 bg-white/10 px-3 py-1 rounded-full">🗓️ Publicada el ${fecha}</span>` : ''}
+              </div>
+              <p class="text-slate-300 text-sm mt-4">Noticias pet reales · Agenda de la semana · Crucigrama y sudoku · Horóscopo de la manada</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4" style="background:#16203A;">
+              <a href="${esc(newsState.downloadUrl || '#')}" target="_blank" rel="noopener" class="text-center font-extrabold text-slate-900 px-6 py-4 rounded-xl hover:brightness-110 transition" style="background:#D9A426;">📖 Leer la edición</a>
+              <button onclick="downloadNews()" class="text-center font-extrabold text-white px-6 py-4 rounded-xl border border-white/30 hover:bg-white/10 transition">⬇️ Descargar PDF</button>
+            </div>
+          </div>`;
+      } catch (e) {
+        el.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-sm text-red-600">⚠️ No se pudo cargar la edición. Revisa tu conexión e intenta recargar.</div>`;
+      }
+    }
+    window.downloadNews = async function() {
+      if (!newsState || !newsState.downloadUrl) return;
+      try {
+        const res = await fetch(newsState.downloadUrl);
+        if (!res.ok) throw new Error('http');
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = newsState.fileName || ('ChochePet-News-Edicion-' + (newsState.edition || '') + '.pdf');
+        document.body.appendChild(a); a.click(); a.remove();
+      } catch (e) { window.open(newsState.downloadUrl, '_blank'); }
+    };
+
+    // ═══════════ 2. MASCOTAS PERDIDAS ═══════════
+    let lostCache = [];
+    function listenLost() {
+      const grid = document.getElementById('lostGrid');
+      db.collection('lostPets').where('status', '==', 'active').onSnapshot(snap => {
+        lostCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        lostCache.sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
+        renderLost();
+      }, err => {
+        console.error('lostPets:', err);
+        grid.innerHTML = `<div class="col-span-full bg-red-50 border border-red-200 rounded-2xl p-6 text-sm text-red-600 text-center">⚠️ No se pudo cargar la lista. Si acabas de publicar las reglas nuevas, recarga en unos segundos.</div>`;
+      });
+    }
+    function renderLost() {
+      const grid = document.getElementById('lostGrid');
+      if (!lostCache.length) {
+        grid.innerHTML = `<div class="col-span-full bg-green-50 border border-green-200 rounded-2xl p-8"><p class="text-4xl mb-2">🎉</p><p class="text-green-700 font-bold">No hay mascotas perdidas ahora mismo.</p><p class="text-green-600/70 text-sm mt-1">¡Buenas noticias para la manada! Si tu mascota se pierde, activa la alerta desde tu panel.</p></div>`;
+        return;
+      }
+      grid.innerHTML = lostCache.map(p => {
+        const tel = digits(p.contactPhone);
+        const waMsg = encodeURIComponent(`¡Hola! Vi el flyer de ${p.petName || 'tu mascota'} en la Comunidad ChochePet. Tengo información sobre ${p.petName || 'ella'} 🐾`);
+        const sub = [p.species, p.breed].filter(Boolean).map(esc).join(' · ');
+        return `
+        <div class="bg-white rounded-2xl shadow-lg overflow-hidden border-t-4 border-red-500 flex flex-col">
+          <div class="relative">
+            ${photoOrPaws(p.photoUrl, 'w-full h-44')}
+            <span class="absolute top-2 left-2 bg-red-600 text-white text-[11px] font-extrabold px-3 py-1 rounded-full shadow uppercase tracking-wide">🚨 ¡Me perdí!</span>
+          </div>
+          <div class="p-4 flex-1 flex flex-col">
+            <h3 class="text-lg font-extrabold text-slate-800">${esc(p.petName) || 'Mascota'}</h3>
+            ${sub ? `<p class="text-xs text-slate-500">${sub}</p>` : ''}
+            <p class="text-sm text-slate-600 mt-2">📍 ${esc(p.zone) || 'Zona no indicada'}</p>
+            ${p.lastSeenDate ? `<p class="text-xs text-slate-400 mt-0.5">📅 Visto: ${esc(p.lastSeenDate)}</p>` : ''}
+            <div class="mt-auto pt-3 flex gap-2">
+              <button onclick="openFlyer('${p.id}')" class="flex-1 bg-red-600 hover:bg-red-700 text-white px-3 py-2.5 rounded-xl font-bold text-sm transition">Ver flyer</button>
+              ${tel ? `<a href="https://wa.me/${tel}?text=${waMsg}" target="_blank" rel="noopener" class="bg-green-100 hover:bg-green-200 text-green-700 px-3 py-2.5 rounded-xl font-bold text-sm transition">💬</a>` : ''}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+      // Deep-link desde el panel del dueño: comunidad.html?flyer=<id>
+      if (pendingFlyerId) {
+        const id = pendingFlyerId; pendingFlyerId = null;
+        if (lostCache.find(x => x.id === id)) openFlyer(id);
+      }
+    }
+    window.openFlyer = function(id) {
+      const p = lostCache.find(x => x.id === id);
+      if (!p) return;
+      const tel = digits(p.contactPhone);
+      const waMsg = encodeURIComponent(`¡Hola! Vi el flyer de ${p.petName || 'tu mascota'} en la Comunidad ChochePet. La encontré / tengo información 🐾`);
+      const sub = [p.species, p.breed].filter(Boolean).map(esc).join(' · ');
+      document.getElementById('flyerCard').innerHTML = `
+        <div class="bg-white rounded-3xl overflow-hidden shadow-2xl border-4 border-red-600">
+          <div class="bg-red-600 text-white text-center py-3 px-2">
+            <p class="text-lg font-extrabold tracking-widest uppercase">🚨 ¡Me he perdido! 🚨</p>
+          </div>
+          <div class="p-5 text-slate-800">
+            ${photoOrPaws(p.photoUrl, 'w-full h-64 rounded-2xl')}
+            <h2 class="text-3xl font-extrabold text-center mt-3">${esc(p.petName) || 'Mascota'}</h2>
+            ${sub ? `<p class="text-center text-slate-500 text-sm mt-0.5">${sub}</p>` : ''}
+            <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm space-y-1">
+              <p>📍 <b>Visto por última vez en:</b> ${esc(p.zone) || '—'}</p>
+              ${p.lastSeenDate ? `<p>📅 <b>Fecha aproximada:</b> ${esc(p.lastSeenDate)}</p>` : ''}
+            </div>
+            ${p.notes ? `<div class="mt-3 bg-slate-50 border rounded-xl p-3 text-sm text-slate-600"><p class="font-bold text-slate-700 mb-1">Ayúdame a volver a casa:</p><p class="whitespace-pre-line">${esc(p.notes)}</p></div>` : ''}
+            <div class="mt-4 space-y-2">
+              ${tel ? `<a href="https://wa.me/${tel}?text=${waMsg}" target="_blank" rel="noopener" class="block text-center bg-green-500 hover:bg-green-600 text-white px-6 py-3.5 rounded-xl font-extrabold transition">💬 Contactar por WhatsApp</a>
+              <a href="tel:${tel}" class="block text-center bg-slate-100 hover:bg-slate-200 text-slate-700 px-6 py-3 rounded-xl font-bold text-sm transition">📞 Llamar</a>` : `<p class="text-center text-sm text-slate-400">Sin teléfono de contacto registrado</p>`}
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-200 text-center">
+              <p class="text-sm font-extrabold text-slate-700">🐾 ChochePet · Tu Choche, Tu Pet</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">chochepet.vercel.app — escanea su medalla para ver su perfil</p>
+            </div>
+          </div>
+        </div>`;
+      window.currentFlyer = p;
+      const m = document.getElementById('flyerModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+    }
+    window.closeFlyer = function() { const m = document.getElementById('flyerModal'); m.classList.add('hidden'); m.classList.remove('flex'); window.currentFlyer = null; }
+    window.copyFlyerText = function() {
+      const p = window.currentFlyer;
+      if (!p) return;
+      const lines = [
+        '🚨 ¡SE PERDIÓ ' + (p.petName || 'MI MASCOTA').toUpperCase() + '! 🐾',
+        p.species || p.breed ? ('🐾 ' + [p.species, p.breed].filter(Boolean).join(' · ')) : '',
+        '📍 Zona: ' + (p.zone || 'por confirmar'),
+        p.lastSeenDate ? '📅 Visto: ' + p.lastSeenDate : '',
+        p.notes ? 'ℹ️ ' + p.notes : '',
+        '',
+        '¿Lo has visto? ¡Escríbeme por WhatsApp! 🙏',
+        'Comparte este flyer para ayudar a que vuelva a casa ❤️'
+      ].filter(Boolean);
+      navigator.clipboard.writeText(lines.join('\n')).then(() => alert('✅ Texto copiado. Pégalo en tu estado o grupo de WhatsApp junto a la captura del flyer.')).catch(() => alert('No se pudo copiar automáticamente.'));
+    }
+
+    // ═══════════ 3. PROMOCIONES ═══════════
+    let promoCache = [];
+    function listenPromos() {
+      const grid = document.getElementById('promoGrid');
+      db.collection('promotions').where('active', '==', true).onSnapshot(snap => {
+        promoCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        promoCache.sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
+        renderPromos();
+      }, err => {
+        console.error('promotions:', err);
+        grid.innerHTML = `<div class="col-span-full bg-amber-50 border border-amber-200 rounded-2xl p-6 text-sm text-amber-700 text-center">⚠️ No se pudo cargar la lista. Si acabas de publicar las reglas nuevas, recarga en unos segundos.</div>`;
+      });
+    }
+    function renderPromos() {
+      const grid = document.getElementById('promoGrid');
+      if (!promoCache.length) {
+        grid.innerHTML = `<div class="col-span-full bg-slate-50 border border-slate-200 rounded-2xl p-8"><p class="text-4xl mb-2">🎁</p><p class="text-slate-600 font-bold">Pronto: beneficios de locales aliados.</p><p class="text-slate-400 text-sm mt-1">Estamos coordinando descuentos exclusivos para la comunidad ChochePet.</p></div>`;
+        return;
+      }
+      grid.innerHTML = promoCache.map(pr => `
+        <button onclick="openPromo('${pr.id}')" class="text-left bg-white rounded-2xl shadow-lg border border-amber-100 p-5 hover:shadow-2xl hover:-translate-y-0.5 transition flex flex-col gap-2">
+          <div class="flex justify-between items-start gap-2">
+            <span class="text-4xl">${pr.emoji ? esc(pr.emoji) : '🎁'}</span>
+            ${pr.badge ? `<span class="bg-amber-100 text-amber-700 text-xs font-extrabold px-3 py-1 rounded-full whitespace-nowrap">${esc(pr.badge)}</span>` : ''}
+          </div>
+          <p class="text-xs uppercase tracking-wide text-slate-400 font-bold mt-1">${esc(pr.store)}</p>
+          <h3 class="font-extrabold text-slate-800">${esc(pr.title)}</h3>
+          ${pr.validUntil ? `<p class="text-xs text-slate-400">⏳ Válido hasta: ${esc(pr.validUntil)}</p>` : ''}
+          <span class="mt-auto pt-2 text-sm text-amber-600 font-bold">Ver más →</span>
+        </button>`).join('');
+    }
+    window.openPromo = function(id) {
+      const pr = promoCache.find(x => x.id === id);
+      if (!pr) return;
+      document.getElementById('promoDetail').innerHTML = `
+        <div class="text-center mb-4">
+          <span class="text-5xl">${pr.emoji ? esc(pr.emoji) : '🎁'}</span>
+          <h3 class="text-xl font-extrabold text-slate-800 mt-2">${esc(pr.title)}</h3>
+          <p class="text-sm uppercase tracking-wide text-slate-400 font-bold">${esc(pr.store)}</p>
+          ${pr.badge ? `<span class="inline-block mt-2 bg-amber-100 text-amber-700 text-sm font-extrabold px-4 py-1 rounded-full">${esc(pr.badge)}</span>` : ''}
+        </div>
+        ${pr.description ? `<p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50 border rounded-xl p-4">${esc(pr.description)}</p>` : ''}
+        ${pr.validUntil ? `<p class="text-xs text-slate-500 mt-3">⏳ Válido hasta: <b>${esc(pr.validUntil)}</b></p>` : ''}
+        <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+          <p class="font-extrabold mb-1">🏅 ¿Cómo la hago válida?</p>
+          <p>Muestra el perfil de tu mascota en la app ChochePet y ten puesta la <b>medalla de ChochePet</b> en tu peludo. El local aliado validará tu beneficio.</p>
+        </div>`;
+      const m = document.getElementById('promoModal');
+      m.classList.remove('hidden'); m.classList.add('flex');
+    }
+    window.closePromoModal = function() { const m = document.getElementById('promoModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
+
+    // ─── Arranque ───
+    // Deep-link: comunidad.html?flyer=<id> abre directamente el flyer (viene del panel del dueño)
+    let pendingFlyerId = new URLSearchParams(window.location.search).get('flyer') || null;
+    loadNews();
+    listenLost();
+    listenPromos();
+  </script>
+</body>
+</html>
