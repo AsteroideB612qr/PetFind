@@ -66,7 +66,7 @@
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Básico (Ej: 20.00)</label><input type="text" id="basicPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Renovación mensual Premium (Ej: 14.90)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Premium: Medalla de identificación QR + 1er mes (Ej: 34.90)</label><input type="text" id="premiumPrice" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 2 meses + Medalla de identificación QR de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 1 mes + Medalla de identificación QR de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2">
           <label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp de ChochePet</label>
@@ -105,12 +105,14 @@
       <summary class="select-none flex justify-between items-center flex-wrap gap-2 cursor-pointer">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">🎁 Promociones de Aliados <span id="promoCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
       </summary>
-      <p class="text-xs text-gray-400 mt-1">Las promos activas aparecen en comunidad.html → “Beneficios”. La validación la hace el local viendo la app y la Medalla de identificación QR puesta en la mascota.</p>
+      <p class="text-xs text-gray-400 mt-1">Las promos activas aparecen en comunidad.html → “Beneficios”, visible SOLO para usuarios Premium con suscripción vigente. Al cumplirse la <b>Vigencia</b> desaparecen solas de la Comunidad. La validación la hace el local viendo la app y la Medalla de identificación QR puesta en la mascota.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Local aliado (Ej: Veterinaria Patitas)</label><input type="text" id="promoStore" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Título (Ej: 20% en consultas)</label><input type="text" id="promoTitle" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Etiqueta corta (Ej: -20% · 2x1 · Envío gratis)</label><input type="text" id="promoBadge" maxlength="24" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Válido hasta (texto libre, ej: 31 dic)</label><input type="text" id="promoValid" maxlength="40" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Vigencia — válido hasta (vacío = sin vencimiento)</label><input type="date" id="promoValid" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">URL de la tienda (opcional, ej: https://vetpatitas.pe)</label><input type="url" id="promoUrl" placeholder="https://…" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp del local (con código país, ej: 51987654321)</label><input type="text" id="promoWhats" placeholder="51987654321" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Ícono</label><select id="promoEmoji" class="w-full p-3 border rounded-xl text-base"><option>🎁</option><option>🐾</option><option>🩺</option><option>🛁</option><option>🍗</option><option>💇</option><option>🏷️</option></select></div>
         <div class="md:col-span-1"><label class="block text-gray-700 mb-2 font-medium text-sm">Detalles que verá el usuario al hacer clic</label><textarea id="promoDesc" rows="2" class="w-full p-3 border rounded-xl text-base" placeholder="Condiciones, horarios, dirección, cómo canjear…"></textarea></div>
       </div>
@@ -731,6 +733,18 @@
 
     // ═══════════ 🎁 PROMOCIONES DE LOCALES ALIADOS ═══════════
     let promosCache = [];
+    // Ronda 21: vigencia real de promos (mismo criterio que comunidad.html)
+    function promoVigenciaDate(v) {
+      if (!v) return null;
+      if (v.seconds) return new Date(v.seconds * 1000);
+      const s = String(v);
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T23:59:59') : new Date(s);
+      return isNaN(d.getTime()) ? null : d; // texto libre antiguo ("31 dic") no evaluable → no expira
+    }
+    function isPromoExpired(p) {
+      const d = promoVigenciaDate(p.validUntil);
+      return !!(d && d.getTime() < Date.now());
+    }
     function loadPromosAdmin() {
       const list = document.getElementById('promoList');
       if (!list) return;
@@ -738,16 +752,19 @@
         promosCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
         promosCache.sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
         const cnt = document.getElementById('promoCount');
-        if (cnt) cnt.innerText = `(${promosCache.filter(p => p.active !== false).length} activas)`;
+        const activas = promosCache.filter(p => p.active !== false && !isPromoExpired(p)).length;
+        const vencidas = promosCache.filter(p => p.active !== false && isPromoExpired(p)).length;
+        if (cnt) cnt.innerText = `(${activas} activas${vencidas ? ' · ' + vencidas + ' vencidas' : ''})`;
         if (!promosCache.length) { list.innerHTML = `<p class="text-gray-400 text-sm text-center py-3">Aún no hay promociones. Agrega la primera con el formulario de arriba.</p>`; return; }
         list.innerHTML = promosCache.map(p => `
           <div class="flex flex-wrap items-center gap-2 border rounded-xl p-3 ${p.active !== false ? 'bg-white' : 'bg-gray-50 opacity-60'}">
             <span class="text-2xl">${p.emoji || '🎁'}</span>
             <div class="flex-1 min-w-[180px]">
               <p class="font-bold text-sm text-gray-800">${p.title || '—'} ${p.badge ? `<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-extrabold">${p.badge}</span>` : ''}</p>
-              <p class="text-xs text-gray-500">${p.store || '—'} ${p.validUntil ? '· ⏳ hasta ' + p.validUntil : ''}</p>
+              <p class="text-xs text-gray-500">${p.store || '—'} ${p.validUntil ? '· ⏳ hasta ' + p.validUntil : ''}${p.storeUrl ? ' · 🌐' : ''}${p.storeWhats ? ' · 💬' : ''}</p>
             </div>
             <span class="text-xs px-2 py-0.5 rounded-full font-bold ${p.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}">${p.active !== false ? 'Visible' : 'Oculta'}</span>
+            ${isPromoExpired(p) ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-red-100 text-red-700" title="Cumplió su vigencia: ya no se ve en la Comunidad">⏰ Vencida</span>' : ''}
             <button onclick="togglePromo('${p.id}', ${p.active !== false})" class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200">${p.active !== false ? '🙈 Ocultar' : '👁️ Activar'}</button>
             <button onclick="deletePromo('${p.id}')" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200">🗑️</button>
           </div>`).join('');
@@ -757,11 +774,17 @@
       const store = document.getElementById('promoStore').value.trim();
       const title = document.getElementById('promoTitle').value.trim();
       if (!store || !title) return alert('Completa al menos Local y Título.');
+      const storeUrl = document.getElementById('promoUrl').value.trim();
+      if (storeUrl && !/^https?:\/\//i.test(storeUrl)) return alert('La URL de la tienda debe empezar con https:// (ej: https://vetpatitas.pe).');
+      const storeWhats = document.getElementById('promoWhats').value.replace(/\D/g, '');
+      const vig = document.getElementById('promoValid').value;
       try {
         await db.collection("promotions").add({
           store: store, title: title,
           badge: document.getElementById('promoBadge').value.trim(),
-          validUntil: document.getElementById('promoValid').value.trim(),
+          validUntil: vig,
+          storeUrl: storeUrl,
+          storeWhats: storeWhats,
           description: document.getElementById('promoDesc').value.trim(),
           emoji: document.getElementById('promoEmoji').value,
           active: true,
@@ -769,8 +792,9 @@
         });
         document.getElementById('promoStore').value = ''; document.getElementById('promoTitle').value = '';
         document.getElementById('promoBadge').value = ''; document.getElementById('promoValid').value = '';
+        document.getElementById('promoUrl').value = ''; document.getElementById('promoWhats').value = '';
         document.getElementById('promoDesc').value = '';
-        alert('✅ Promoción agregada. Ya es visible en comunidad.html.');
+        alert('✅ Promoción agregada. Los Premium la ven en comunidad.html → Beneficios' + (vig ? ' hasta su vigencia.' : '.'));
       } catch (e) { alert('Error al agregar: ' + friendlyError(e)); }
     }
     window.togglePromo = async function(id, isActive) {
