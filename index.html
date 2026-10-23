@@ -587,6 +587,7 @@
           <a href="https://chochepet.vercel.app/scan.html?id=${tagId}" target="_blank" class="bg-slate-100 text-slate-700 px-3 py-2 rounded-xl text-sm font-bold text-center">&#128065; Ver perfil</a>
           ${waSales}${waRenew}
         </div>
+        <button onclick="resetTag('${tagId}')" title="Vuelve la medalla a su estado original: queda Sin reclamar, sin due\u00F1o, sin suscripci\u00F3n y con el perfil borrado. Ideal para pruebas o para reasignar la medalla a otro cliente." class="w-full bg-amber-500 hover:bg-amber-600 text-white px-3 py-2.5 rounded-xl text-sm font-bold mb-1.5">${'\u267B\uFE0F'} Restaurar estado original</button>
         <button onclick="deleteTag('${tagId}')" class="w-full bg-red-600 hover:bg-red-700 text-white px-3 py-2.5 rounded-xl text-sm font-bold">${'\u{1F5D1}'} Eliminar Medalla</button>`;
       const m = document.getElementById('manageModal');
       m.classList.remove('hidden');
@@ -629,6 +630,33 @@
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
     window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
+
+    // ♻️ RESTAURAR ESTADO ORIGINAL: deja la medalla exactamente como recién generada
+    // (createTag: claimed:false, phone:"", vouchers:[]), borrando ownerId, suscripción,
+    // paymentStatus, el perfil de la mascota y cualquier aviso de pérdida del test.
+    // La cuenta de Auth creada al reclamar NO se toca (si ese correo reclama de nuevo,
+    // scan.html ya lo maneja con signIn). Úsala para pruebas o reasignar la medalla.
+    window.resetTag = async function(tagId) {
+      if (!confirm("♻️ Restaurar la medalla " + tagId + " a su estado original?\n\nQuedará 'Sin reclamar', lista para un nuevo dueño, y se BORRARÁN:\n· El perfil de la mascota (foto, datos, eventos, notas, recetas)\n· El WhatsApp y el ID del dueño\n· La suscripción activa y los recibos de pago\n· El aviso de mascota perdida (si tiene uno activo)\n\nEsta acción NO se puede deshacer.")) return;
+      try {
+        await db.collection("tags").doc(tagId).update({
+          claimed: false,
+          phone: "",
+          ownerId: firebase.firestore.FieldValue.delete(),
+          subscriptionExpires: firebase.firestore.FieldValue.delete(),
+          paymentStatus: firebase.firestore.FieldValue.delete(),
+          vouchers: []
+        });
+      } catch(e) { alert("Error al restaurar la medalla: " + friendlyError(e)); return; }
+      try { await db.collection("pets").doc(tagId).delete(); } catch(e) { /* el perfil ya no existía */ }
+      try {
+        const lostSnap = await db.collection("lostPets").where("tagId", "==", tagId).get();
+        for (const d of lostSnap.docs) { await db.collection("lostPets").doc(d.id).delete().catch(()=>{}); }
+      } catch(e) { /* sin aviso de pérdida o sin permiso; la medalla ya quedó restaurada */ }
+      closeManage();
+      listenTags();
+      alert("✅ Medalla " + tagId + " restaurada a su estado original. Aparece como 'Sin reclamar' y puede ser activada por un nuevo dueño.");
+    }
 
     // ═══════════ 🗞️ CHOCHEPET NEWS: PUBLICADOR DEL SEMANARIO ═══════════
     // El PDF NO usa Firebase Storage (requiere plan de pago): se guarda
