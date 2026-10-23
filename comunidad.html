@@ -21,9 +21,10 @@
     <div class="max-w-5xl mx-auto px-4 py-3 flex justify-between items-center gap-2">
       <a href="landing.html"><img src="logo.png" alt="ChochePet" class="h-10 md:h-12"></a>
       <div class="flex items-center gap-2 text-sm font-bold">
-        <a href="#news" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🗞️ News</a>
+        <a id="navNews" href="#news" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🗞️ News</a>
         <a href="#perdidas" class="bg-red-100 text-red-700 px-3 py-2 rounded-xl hover:bg-red-200 transition">🚨 Perdidas</a>
-        <a href="#promos" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🎁 Beneficios</a>
+        <a id="navPromos" href="#promos" class="hidden md:inline text-slate-600 hover:text-blue-600 px-2">🎁 Beneficios</a>
+        <span id="premBadge" class="hidden bg-amber-100 text-amber-700 px-3 py-2 rounded-xl whitespace-nowrap">👑 Premium</span>
         <a href="landing.html" class="bg-blue-600 text-white px-3 py-2 rounded-xl hover:bg-blue-700 transition whitespace-nowrap">🐾 Quiero mi medalla</a>
       </div>
     </div>
@@ -123,6 +124,56 @@
       return url
         ? `<img src="${esc(url)}" alt="Foto de la mascota" class="${cls} object-cover">`
         : `<div class="${cls} bg-slate-200 flex items-center justify-center text-6xl">🐾</div>`;
+    }
+
+    // ═══════════ 0. ACCESO: COMUNIDAD EXCLUSIVA PREMIUM (Ronda 21) ═══════════
+    // News + Beneficios: SOLO usuarios con suscripción activa (se verifica con ?id=<tagId> → tags/{id}).
+    // EXCEPCIÓN: los avisos de Mascotas Perdidas los ve TODA la comunidad (básico y premium).
+    const qp = new URLSearchParams(window.location.search);
+    let isPremium = false;
+    function expToDt(v) { if (!v) return null; return v.seconds ? new Date(v.seconds * 1000) : new Date(v); }
+    async function checkPremium() {
+      if (qp.get('demo') === 'true') return true; // la demo muestra todo (venta)
+      const id = qp.get('id');
+      if (!id) return false;
+      try {
+        const snap = await db.collection('tags').doc(id).get();
+        if (!snap.exists) return false;
+        const exp = expToDt(snap.data().subscriptionExpires);
+        return !!(exp && exp > new Date());
+      } catch (e) { console.error('checkPremium:', e); return false; }
+    }
+    function lockedBox(icon, title, desc) {
+      return `<div class="max-w-2xl mx-auto bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-3xl p-8 border-4 border-amber-400 shadow-xl text-center">
+        <p class="text-4xl mb-2">${icon}</p>
+        <p class="font-extrabold text-xl">${title}</p>
+        <p class="text-slate-300 text-sm mt-2">${desc}</p>
+        <p class="text-amber-300 text-sm mt-3 font-bold">🚨 La red de Mascotas Perdidas sí es abierta: la ve toda la comunidad.</p>
+        <a href="landing.html" target="_blank" rel="noopener" class="upsellCta mt-5 inline-block bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-xl font-bold text-sm transition">👑 Quiero ser Premium</a>
+      </div>`;
+    }
+    async function loadUpsellCta() {
+      // CTA de venta con el WhatsApp del panel (si existe)
+      try {
+        const snap = await db.collection('settings').doc('payment').get();
+        const s = snap.exists ? snap.data() : null;
+        if (s && s.petfindWhatsapp) {
+          const msg = s.waSalesMsg || 'Hola ChochePet 🐾 Quiero activar Premium para entrar a la Comunidad (News y Beneficios).';
+          const href = `https://wa.me/${digits(s.petfindWhatsapp)}?text=${encodeURIComponent(msg)}`;
+          document.querySelectorAll('.upsellCta').forEach(a => a.href = href);
+        }
+      } catch (e) {}
+    }
+    function applyAccess() {
+      const badge = document.getElementById('premBadge');
+      if (isPremium) {
+        if (badge) badge.classList.remove('hidden');
+      } else {
+        ['navNews', 'navPromos'].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+        document.getElementById('newsCard').innerHTML = lockedBox('🗞️', 'ChochePet News es exclusivo Premium', 'El semanario de la manada —noticias pet reales, agenda, juegos y horóscopo— es solo para miembros con suscripción activa.');
+        document.getElementById('promoGrid').innerHTML = lockedBox('🎁', 'Beneficios exclusivos Premium', 'Los descuentos y promociones de nuestros locales aliados son solo para miembros con suscripción activa.');
+        loadUpsellCta();
+      }
     }
 
     // ═══════════ 1. CHOCHEPET NEWS ═══════════
@@ -307,11 +358,31 @@
     }
 
     // ═══════════ 3. PROMOCIONES ═══════════
+    // Ronda 21: vigencia real — cuando se cumple la fecha, la promo desaparece sola de la comunidad.
+    function validUntilDate(v) {
+      if (!v) return null;
+      if (v.seconds) return new Date(v.seconds * 1000);
+      const s = String(v);
+      // Formato nuevo YYYY-MM-DD (input date) → cuenta hasta el FINAL de ese día
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T23:59:59') : new Date(s);
+      // Texto libre antiguo (ej: "31 dic") no es evaluable → null (no expira, se muestra tal cual)
+      return isNaN(d.getTime()) ? null : d;
+    }
+    function isPromoExpired(pr) {
+      const d = validUntilDate(pr.validUntil);
+      return !!(d && d.getTime() < Date.now());
+    }
+    function fmtValid(v) {
+      if (!v) return '';
+      if (v.seconds) return fmtDate(v);
+      const d = /^\d{4}-\d{2}-\d{2}$/.test(String(v)) ? new Date(v + 'T12:00:00') : null;
+      return d && !isNaN(d.getTime()) ? d.toLocaleDateString('es-PE', { day: 'numeric', month: 'short', year: 'numeric' }) : String(v);
+    }
     let promoCache = [];
     function listenPromos() {
       const grid = document.getElementById('promoGrid');
       db.collection('promotions').where('active', '==', true).onSnapshot(snap => {
-        promoCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        promoCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data())).filter(pr => !isPromoExpired(pr));
         promoCache.sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
         renderPromos();
       }, err => {
@@ -333,13 +404,17 @@
           </div>
           <p class="text-xs uppercase tracking-wide text-slate-400 font-bold mt-1">${esc(pr.store)}</p>
           <h3 class="font-extrabold text-slate-800">${esc(pr.title)}</h3>
-          ${pr.validUntil ? `<p class="text-xs text-slate-400">⏳ Válido hasta: ${esc(pr.validUntil)}</p>` : ''}
+          ${pr.validUntil ? `<p class="text-xs text-slate-400">⏳ Válido hasta: ${esc(fmtValid(pr.validUntil))}</p>` : ''}
           <span class="mt-auto pt-2 text-sm text-amber-600 font-bold">Ver más →</span>
         </button>`).join('');
     }
     window.openPromo = function(id) {
       const pr = promoCache.find(x => x.id === id);
       if (!pr) return;
+      // Ronda 21: tienda (URL) y WhatsApp con mensaje predeterminado que referencia la promoción
+      const waTel = digits(pr.storeWhats);
+      const safeUrl = /^https?:\/\//i.test(String(pr.storeUrl || '')) ? String(pr.storeUrl) : '';
+      const waMsg = encodeURIComponent(`¡Hola! 🐾 Vi la promoción "${pr.title || ''}" de ${pr.store || 'su local'} en la Comunidad ChochePet y quiero más información.`);
       document.getElementById('promoDetail').innerHTML = `
         <div class="text-center mb-4">
           <span class="text-5xl">${pr.emoji ? esc(pr.emoji) : '🎁'}</span>
@@ -348,7 +423,11 @@
           ${pr.badge ? `<span class="inline-block mt-2 bg-amber-100 text-amber-700 text-sm font-extrabold px-4 py-1 rounded-full">${esc(pr.badge)}</span>` : ''}
         </div>
         ${pr.description ? `<p class="text-slate-600 text-sm leading-relaxed whitespace-pre-line bg-slate-50 border rounded-xl p-4">${esc(pr.description)}</p>` : ''}
-        ${pr.validUntil ? `<p class="text-xs text-slate-500 mt-3">⏳ Válido hasta: <b>${esc(pr.validUntil)}</b></p>` : ''}
+        ${pr.validUntil ? `<p class="text-xs text-slate-500 mt-3">⏳ Válido hasta: <b>${esc(fmtValid(pr.validUntil))}</b></p>` : ''}
+        ${(safeUrl || waTel) ? `<div class="mt-3 flex flex-wrap gap-2">
+          ${safeUrl ? `<a href="${esc(safeUrl)}" target="_blank" rel="noopener" class="flex-1 min-w-[10rem] text-center bg-slate-800 hover:bg-slate-700 text-white px-4 py-3 rounded-xl font-bold text-sm transition">🌐 Visitar tienda</a>` : ''}
+          ${waTel ? `<a href="https://wa.me/${waTel}?text=${waMsg}" target="_blank" rel="noopener" class="flex-1 min-w-[10rem] text-center bg-green-500 hover:bg-green-600 text-white px-4 py-3 rounded-xl font-bold text-sm transition">💬 Pedir info por WhatsApp</a>` : ''}
+        </div>` : ''}
         <div class="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           <p class="font-extrabold mb-1">🏅 ¿Cómo la hago válida?</p>
           <p>Muestra el perfil de tu mascota en la app ChochePet y ten puesta la <b>Medalla de identificación QR de ChochePet</b> en tu peludo. El local aliado validará tu beneficio.</p>
@@ -359,11 +438,16 @@
     window.closePromoModal = function() { const m = document.getElementById('promoModal'); m.classList.add('hidden'); m.classList.remove('flex'); }
 
     // ─── Arranque ───
-    // Deep-link: comunidad.html?flyer=<id> abre directamente el flyer (viene del panel del dueño)
-    let pendingFlyerId = new URLSearchParams(window.location.search).get('flyer') || null;
-    loadNews();
+    // Deep-link: comunidad.html?flyer=<id> abre directamente el flyer (viene del panel del dueño).
+    // Ronda 21: News y Beneficios solo se cargan si la visita es Premium (?id=<tagId> con suscripción
+    // activa, o ?demo=true). Perdidas SIEMPRE se carga: la ve toda la comunidad.
+    let pendingFlyerId = qp.get('flyer') || null;
     listenLost();
-    listenPromos();
+    checkPremium().then(ok => {
+      isPremium = ok;
+      applyAccess();
+      if (isPremium) { loadNews(); listenPromos(); }
+    });
   </script>
 </body>
 </html>
