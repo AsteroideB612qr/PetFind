@@ -65,8 +65,8 @@
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Número de Cuenta</label><input type="text" id="walletNumber" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Básico (Ej: 20.00)</label><input type="text" id="basicPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Renovación mensual Premium (Ej: 14.90)</label><input type="text" id="subPrice" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Premium: medalla + 1er mes (Ej: 34.90)</label><input type="text" id="premiumPrice" class="w-full p-3 border rounded-xl text-base"></div>
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 2 meses + placa de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Premium: Medalla de identificación QR + 1er mes (Ej: 34.90)</label><input type="text" id="premiumPrice" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Precio Promo: 2 meses + Medalla de identificación QR de cortesía (Ej: 29.80)</label><input type="text" id="promoPrice" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Correo de Soporte</label><input type="email" id="supportEmail" class="w-full p-3 border rounded-xl text-base"></div>
         <div class="md:col-span-2">
           <label class="block text-gray-700 mb-2 font-medium text-sm">WhatsApp de ChochePet</label>
@@ -105,7 +105,7 @@
       <summary class="select-none flex justify-between items-center flex-wrap gap-2 cursor-pointer">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">🎁 Promociones de Aliados <span id="promoCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
       </summary>
-      <p class="text-xs text-gray-400 mt-1">Las promos activas aparecen en comunidad.html → “Beneficios”. La validación la hace el local viendo la app y la medalla puesta en la mascota.</p>
+      <p class="text-xs text-gray-400 mt-1">Las promos activas aparecen en comunidad.html → “Beneficios”. La validación la hace el local viendo la app y la Medalla de identificación QR puesta en la mascota.</p>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Local aliado (Ej: Veterinaria Patitas)</label><input type="text" id="promoStore" class="w-full p-3 border rounded-xl text-base"></div>
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">Título (Ej: 20% en consultas)</label><input type="text" id="promoTitle" class="w-full p-3 border rounded-xl text-base"></div>
@@ -119,12 +119,12 @@
     </details>
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
-      <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
+      <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla de identificación QR</h2>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo de placa</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básica</option><option value="premium">Premium</option></select></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo de medalla de identificación QR</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básica</option><option value="premium">Premium</option></select></div>
         <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
       </div>
-      <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla y QR</button>
+      <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla de identificación QR</button>
     </div>
 
     <!-- RESUMEN DEL INVENTARIO -->
@@ -328,7 +328,7 @@
         document.getElementById('supportEmail').value = s.supportEmail || "";
         document.getElementById('petfindWhatsapp').value = s.petfindWhatsapp ? s.petfindWhatsapp.substring(2) : "";
         document.getElementById('petfindCountry').value = s.petfindWhatsapp ? s.petfindWhatsapp.substring(0, 2) : "51";
-        document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola ChochePet, me gustaría información sobre las medallas.";
+        document.getElementById('waSalesMsg').value = s.waSalesMsg || "Hola ChochePet, me gustaría información sobre las medallas de identificación QR.";
         document.getElementById('waSupportMsg').value = s.waSupportMsg || "Hola ChochePet, tuve un problema con mi recibo de pago.";
         document.getElementById('rescueMsg').value = s.rescueMsg || "¡Hola! Encontré a tu mascota. Te escribo desde ChochePet para que puedas recuperarla. Te comparto mi ubicación:";
         document.getElementById('subPrice').value = s.subPrice || "14.90";
@@ -413,7 +413,7 @@
       const out = [];
       const activeSub = !!(tag.claimed && tag.subscriptionExpires && expToDate(tag.subscriptionExpires) > new Date());
       if (!tag.claimed) {
-        // Sin reclamar: mostramos el tipo de kit con el que fue creada la placa
+        // Sin reclamar: mostramos el tipo de kit con el que fue creada la medalla
         out.push((tag.plan || 'basic') === 'basic'
           ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">Kit BASIC</span>'
           : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">Kit PREMIUM</span>');
