@@ -10,6 +10,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script>
     const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
   </script>
@@ -40,6 +41,7 @@
     <div class="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
       <img src="logo.png" alt="ChochePet" class="h-16">
       <div class="flex gap-2 w-full md:w-auto">
+        <a href="comunidad.html" target="_blank" class="flex-1 bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-amber-200 flex items-center justify-center gap-2">🗞️ Comunidad</a>
         <a href="landing.html" target="_blank" class="flex-1 bg-slate-800 text-white px-4 py-2 rounded-xl font-bold text-sm hover:bg-slate-900 flex items-center justify-center gap-2">👁️ Landing</a>
         <button onclick="logoutAdmin()" class="flex-1 bg-red-100 text-red-700 px-4 py-2 rounded-xl font-bold text-sm hover:bg-red-200">Cerrar Sesión</button>
       </div>
@@ -83,6 +85,39 @@
         <button onclick="updateAllMessages()" class="flex-1 bg-purple-600 text-white px-6 py-3 rounded-xl font-bold text-base">Aplicar Msg a Todas</button>
       </div>
     </div>
+
+    <!-- ═══ CHOCHEPET NEWS: PUBLICADOR DEL SEMANARIO ═══ -->
+    <details id="newsBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100 mb-8">
+      <summary class="select-none flex justify-between items-center flex-wrap gap-2 cursor-pointer">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">🗞️ ChochePet News <span id="newsBadge" class="text-sm font-bold text-amber-600 align-middle"></span></h2>
+      </summary>
+      <p class="text-xs text-gray-400 mt-1">Sube el PDF de la edición y elige la fecha de publicación. La edición nueva <b>reemplaza a la anterior</b> (el PDF viejo se borra de Storage: siempre ocupa el mínimo). Aparece al instante en comunidad.html.</p>
+      <div id="newsCurrent" class="mt-4 bg-slate-50 border rounded-xl p-4 text-sm"></div>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">N° de edición</label><input type="number" id="newsEdition" min="1" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Fecha de publicación</label><input type="date" id="newsDate" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">PDF de la edición (máx. 15 MB)</label><input type="file" id="newsFile" accept="application/pdf,.pdf" class="w-full p-2 border rounded-xl text-sm"></div>
+      </div>
+      <button id="newsPublishBtn" onclick="publishNews()" class="mt-4 w-full bg-amber-500 hover:bg-amber-600 text-white px-6 py-4 rounded-xl font-bold text-base">📤 Publicar Edición (reemplaza la anterior)</button>
+    </details>
+
+    <!-- ═══ PROMOCIONES DE LOCALES ALIADOS ═══ -->
+    <details id="promosBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100 mb-8">
+      <summary class="select-none flex justify-between items-center flex-wrap gap-2 cursor-pointer">
+        <h2 class="text-xl md:text-2xl font-bold text-gray-800">🎁 Promociones de Aliados <span id="promoCount" class="text-sm font-bold text-gray-400 align-middle"></span></h2>
+      </summary>
+      <p class="text-xs text-gray-400 mt-1">Las promos activas aparecen en comunidad.html → “Beneficios”. La validación la hace el local viendo la app y la medalla puesta en la mascota.</p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Local aliado (Ej: Veterinaria Patitas)</label><input type="text" id="promoStore" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Título (Ej: 20% en consultas)</label><input type="text" id="promoTitle" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Etiqueta corta (Ej: -20% · 2x1 · Envío gratis)</label><input type="text" id="promoBadge" maxlength="24" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Válido hasta (texto libre, ej: 31 dic)</label><input type="text" id="promoValid" maxlength="40" class="w-full p-3 border rounded-xl text-base"></div>
+        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Ícono</label><select id="promoEmoji" class="w-full p-3 border rounded-xl text-base"><option>🎁</option><option>🐾</option><option>🩺</option><option>🛁</option><option>🍗</option><option>💇</option><option>🏷️</option></select></div>
+        <div class="md:col-span-1"><label class="block text-gray-700 mb-2 font-medium text-sm">Detalles que verá el usuario al hacer clic</label><textarea id="promoDesc" rows="2" class="w-full p-3 border rounded-xl text-base" placeholder="Condiciones, horarios, dirección, cómo canjear…"></textarea></div>
+      </div>
+      <button onclick="addPromo()" class="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl font-bold text-base">➕ Agregar Promoción</button>
+      <div id="promoList" class="mt-4 space-y-2"></div>
+    </details>
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla</h2>
@@ -211,6 +246,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+    const storage = firebase.storage();
     let currentVoucherTagId = null, currentPhoneTagId = null, currentQRLink = "";
 
     // Convierte a Date aceptando Timestamp de Firestore O string ISO (compatibilidad con datos antiguos)
@@ -220,7 +256,7 @@
       if (user && user.email === ADMIN_EMAIL) {
         document.getElementById('loginView').classList.add('hidden');
         document.getElementById('adminView').classList.remove('hidden');
-        loadSettings(); listenTags(); updateSessionBar();
+        loadSettings(); listenTags(); updateSessionBar(); loadNews(); loadPromosAdmin();
       } else {
         if(user) auth.signOut();
         document.getElementById('loginView').classList.remove('hidden');
@@ -593,6 +629,124 @@
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
     window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
+
+    // ═══════════ 🗞️ CHOCHEPET NEWS: PUBLICADOR DEL SEMANARIO ═══════════
+    // settings/news guarda la edición vigente. El PDF vive en Storage (news/…).
+    // Publicar = subir nuevo + borrar anterior (solo 1 archivo en Storage).
+    function expFmt(v) { const d = v && v.seconds ? new Date(v.seconds * 1000) : (v ? new Date(v) : null); return d && !isNaN(d.getTime()) ? d.toLocaleDateString() : ''; }
+    function loadNews() {
+      const cur = document.getElementById('newsCurrent'), badge = document.getElementById('newsBadge');
+      if (!cur) return;
+      db.collection("settings").doc("news").get().then(snap => {
+        if (snap.exists) {
+          const n = snap.data();
+          badge.innerText = n.edition ? `· Ed. ${n.edition} vigente` : '';
+          cur.innerHTML = `<p><b>Vigente:</b> Edición N° ${n.edition || '—'} ${n.publishedAt ? '· publicada ' + expFmt(n.publishedAt) : ''}</p>
+            <p class="text-xs text-gray-400 break-all mt-1">Archivo: ${n.fileName || n.storagePath || '—'}</p>
+            ${n.downloadUrl ? `<a href="${n.downloadUrl}" target="_blank" class="inline-block mt-2 text-blue-600 underline text-xs">Ver PDF actual ↗</a>` : ''}`;
+          const next = document.getElementById('newsEdition'); if (next && !next.value) next.value = (parseInt(n.edition, 10) || 0) + 1;
+        } else {
+          badge.innerText = '';
+          cur.innerHTML = `<p class="text-gray-500">Aún no hay ediciones publicadas. La primera será la N° 1.</p>`;
+          const next = document.getElementById('newsEdition'); if (next && !next.value) next.value = 1;
+        }
+        const dt = document.getElementById('newsDate'); if (dt && !dt.value) dt.value = new Date().toISOString().slice(0, 10);
+      }).catch(e => { cur.innerHTML = `<p class="text-red-500 text-xs">Error leyendo la edición: ${e.message}</p>`; });
+    }
+    function storageFriendlyError(e) {
+      const code = (e && e.code) || '', msg = (e && e.message) || '';
+      if (code.indexOf('storage/unauthorized') >= 0 || msg.indexOf('unauthorized') >= 0)
+        return 'Storage rechazó la subida: pega las reglas de storage-rules.rules en Firebase Console → Storage → Rules (y verifica que iniciaste con el correo admin).';
+      if (code.indexOf('storage/unknown') >= 0 || msg.toLowerCase().indexOf('not found') >= 0 || msg.indexOf('service') >= 0)
+        return 'Firebase Storage no está activo o no responde. Actívalo en Firebase Console → Storage → Comenzar, pega las reglas de storage-rules.rules y vuelve a intentar.';
+      return msg || 'Error desconocido';
+    }
+    window.publishNews = async function() {
+      const btn = document.getElementById('newsPublishBtn');
+      const file = document.getElementById('newsFile').files[0];
+      if (!file) return alert('Selecciona el PDF de la edición.');
+      if (file.type !== 'application/pdf') return alert('El archivo debe ser un PDF.');
+      if (file.size > 15 * 1024 * 1024) return alert('El PDF supera 15 MB. Comprimelo y vuelve a intentar.');
+      const edition = parseInt(document.getElementById('newsEdition').value, 10);
+      if (!edition || edition < 1) return alert('Indica el número de edición (1, 2, 3…).');
+      const dateVal = document.getElementById('newsDate').value;
+      if (!dateVal) return alert('Indica la fecha de publicación.');
+      const old = btn.innerText; btn.disabled = true; btn.innerText = '⏳ Subiendo…';
+      try {
+        const path = `news/edicion-${String(edition).padStart(3, '0')}-${Date.now()}.pdf`;
+        const snap = await storage.ref(path).put(file, { contentType: 'application/pdf', contentDisposition: 'inline; filename="ChochePet-News.pdf"' });
+        const url = await snap.ref.getDownloadURL();
+        // Reemplazo: borrar el PDF anterior SOLO si la subida nueva ya fue exitosa
+        const prev = await db.collection("settings").doc("news").get();
+        if (prev.exists && prev.data().storagePath && prev.data().storagePath !== path) {
+          await storage.ref(prev.data().storagePath).delete().catch(() => {});
+        }
+        await db.collection("settings").doc("news").set({
+          edition: edition,
+          publishedAt: firebase.firestore.Timestamp.fromDate(new Date(dateVal + 'T12:00:00')),
+          storagePath: path, downloadUrl: url, fileName: file.name,
+          updatedAt: new Date().toISOString()
+        });
+        document.getElementById('newsFile').value = '';
+        alert('✅ Edición N° ' + edition + ' publicada. Ya está disponible en comunidad.html (y el PDF anterior fue eliminado).');
+        loadNews();
+      } catch (e) { alert('❌ Error al publicar: ' + storageFriendlyError(e)); }
+      finally { btn.disabled = false; btn.innerText = old; }
+    }
+
+    // ═══════════ 🎁 PROMOCIONES DE LOCALES ALIADOS ═══════════
+    let promosCache = [];
+    function loadPromosAdmin() {
+      const list = document.getElementById('promoList');
+      if (!list) return;
+      db.collection("promotions").onSnapshot(snap => {
+        promosCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
+        promosCache.sort((a, b) => ((b.createdAt && b.createdAt.seconds) || 0) - ((a.createdAt && a.createdAt.seconds) || 0));
+        const cnt = document.getElementById('promoCount');
+        if (cnt) cnt.innerText = `(${promosCache.filter(p => p.active !== false).length} activas)`;
+        if (!promosCache.length) { list.innerHTML = `<p class="text-gray-400 text-sm text-center py-3">Aún no hay promociones. Agrega la primera con el formulario de arriba.</p>`; return; }
+        list.innerHTML = promosCache.map(p => `
+          <div class="flex flex-wrap items-center gap-2 border rounded-xl p-3 ${p.active !== false ? 'bg-white' : 'bg-gray-50 opacity-60'}">
+            <span class="text-2xl">${p.emoji || '🎁'}</span>
+            <div class="flex-1 min-w-[180px]">
+              <p class="font-bold text-sm text-gray-800">${p.title || '—'} ${p.badge ? `<span class="ml-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-extrabold">${p.badge}</span>` : ''}</p>
+              <p class="text-xs text-gray-500">${p.store || '—'} ${p.validUntil ? '· ⏳ hasta ' + p.validUntil : ''}</p>
+            </div>
+            <span class="text-xs px-2 py-0.5 rounded-full font-bold ${p.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}">${p.active !== false ? 'Visible' : 'Oculta'}</span>
+            <button onclick="togglePromo('${p.id}', ${p.active !== false})" class="bg-yellow-100 text-yellow-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-yellow-200">${p.active !== false ? '🙈 Ocultar' : '👁️ Activar'}</button>
+            <button onclick="deletePromo('${p.id}')" class="bg-red-100 text-red-700 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-red-200">🗑️</button>
+          </div>`).join('');
+      }).catch(e => { list.innerHTML = `<p class="text-red-400 text-xs">Error cargando promociones: ${friendlyError(e)}</p>`; });
+    }
+    window.addPromo = async function() {
+      const store = document.getElementById('promoStore').value.trim();
+      const title = document.getElementById('promoTitle').value.trim();
+      if (!store || !title) return alert('Completa al menos Local y Título.');
+      try {
+        await db.collection("promotions").add({
+          store: store, title: title,
+          badge: document.getElementById('promoBadge').value.trim(),
+          validUntil: document.getElementById('promoValid').value.trim(),
+          description: document.getElementById('promoDesc').value.trim(),
+          emoji: document.getElementById('promoEmoji').value,
+          active: true,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        document.getElementById('promoStore').value = ''; document.getElementById('promoTitle').value = '';
+        document.getElementById('promoBadge').value = ''; document.getElementById('promoValid').value = '';
+        document.getElementById('promoDesc').value = '';
+        alert('✅ Promoción agregada. Ya es visible en comunidad.html.');
+      } catch (e) { alert('Error al agregar: ' + friendlyError(e)); }
+    }
+    window.togglePromo = async function(id, isActive) {
+      try { await db.collection("promotions").doc(id).update({ active: !isActive }); }
+      catch (e) { alert('Error: ' + friendlyError(e)); }
+    }
+    window.deletePromo = async function(id) {
+      if (!confirm('¿Eliminar esta promoción definitivamente?')) return;
+      try { await db.collection("promotions").doc(id).delete(); }
+      catch (e) { alert('Error al eliminar: ' + friendlyError(e)); }
+    }
   </script>
 </body>
 </html>
