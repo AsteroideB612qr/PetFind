@@ -64,7 +64,7 @@
       if (!tagId) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>QR inválido.</p>";
       try {
         const docSnap = await db.collection("tags").doc(tagId).get();
-        if (!docSnap.exists) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>Medalla no registrada.</p>";
+        if (!docSnap.exists) return document.getElementById('content').innerHTML = "<p class='text-red-400 font-bold'>Medalla de identificación QR no registrada.</p>";
         const tag = docSnap.data();
         if (!tag.claimed) { renderClaimForm(tagId, tag.message); } 
         else {
@@ -134,7 +134,7 @@
     function salesHref() {
       const wa = globalSettings.petfindWhatsapp;
       if (!wa) return 'landing.html';
-      const msg = globalSettings.waSalesMsg || 'Hola ChochePet 🐾 Me gustaría información sobre las medallas.';
+      const msg = globalSettings.waSalesMsg || 'Hola ChochePet 🐾 Me gustaría información sobre las medallas de identificación QR.';
       return `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
     }
 
