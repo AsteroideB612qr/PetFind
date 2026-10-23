@@ -10,7 +10,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
   <script>
     const ADMIN_EMAIL = "activosonlineqr@gmail.com"; 
   </script>
@@ -91,7 +90,7 @@
       <summary class="select-none flex justify-between items-center flex-wrap gap-2 cursor-pointer">
         <h2 class="text-xl md:text-2xl font-bold text-gray-800">🗞️ ChochePet News <span id="newsBadge" class="text-sm font-bold text-amber-600 align-middle"></span></h2>
       </summary>
-      <p class="text-xs text-gray-400 mt-1">Sube el PDF de la edición y elige la fecha de publicación. La edición nueva <b>reemplaza a la anterior</b> (el PDF viejo se borra de Storage: siempre ocupa el mínimo). Aparece al instante en comunidad.html.</p>
+      <p class="text-xs text-gray-400 mt-1">Sube el PDF de la edición y elige la fecha de publicación. La edición nueva <b>reemplaza a la anterior</b> (el PDF se guarda fragmentado en Firestore y el viejo se borra: siempre queda uno solo). Aparece al instante en comunidad.html.</p>
       <div id="newsCurrent" class="mt-4 bg-slate-50 border rounded-xl p-4 text-sm"></div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
         <div><label class="block text-gray-700 mb-2 font-medium text-sm">N° de edición</label><input type="number" id="newsEdition" min="1" class="w-full p-3 border rounded-xl text-base"></div>
@@ -246,7 +245,6 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
-    const storage = firebase.storage();
     let currentVoucherTagId = null, currentPhoneTagId = null, currentQRLink = "";
 
     // Convierte a Date aceptando Timestamp de Firestore O string ISO (compatibilidad con datos antiguos)
@@ -631,8 +629,14 @@
     window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
 
     // ═══════════ 🗞️ CHOCHEPET NEWS: PUBLICADOR DEL SEMANARIO ═══════════
-    // settings/news guarda la edición vigente. El PDF vive en Storage (news/…).
-    // Publicar = subir nuevo + borrar anterior (solo 1 archivo en Storage).
+    // El PDF NO usa Firebase Storage (requiere plan de pago): se guarda
+    // FRAGMENTADO en Firestore en newsPdfs/{editionToken}/chunks/{i}.
+    // Cada fragmento es base64 de 600 KB crudos (~820 KB por documento,
+    // muy por debajo del límite de 1 MiB por documento de Firestore).
+    // settings/news guarda la metadata de la edición vigente (editionToken).
+    // Publicar = subir fragmentos nuevos → apuntar settings/news → borrar
+    // TODAS las ediciones anteriores (siempre queda 1 solo PDF almacenado).
+    const NEWS_CHUNK_RAW = 600 * 1024;
     function expFmt(v) { const d = v && v.seconds ? new Date(v.seconds * 1000) : (v ? new Date(v) : null); return d && !isNaN(d.getTime()) ? d.toLocaleDateString() : ''; }
     function loadNews() {
       const cur = document.getElementById('newsCurrent'), badge = document.getElementById('newsBadge');
@@ -642,8 +646,8 @@
           const n = snap.data();
           badge.innerText = n.edition ? `· Ed. ${n.edition} vigente` : '';
           cur.innerHTML = `<p><b>Vigente:</b> Edición N° ${n.edition || '—'} ${n.publishedAt ? '· publicada ' + expFmt(n.publishedAt) : ''}</p>
-            <p class="text-xs text-gray-400 break-all mt-1">Archivo: ${n.fileName || n.storagePath || '—'}</p>
-            ${n.downloadUrl ? `<a href="${n.downloadUrl}" target="_blank" class="inline-block mt-2 text-blue-600 underline text-xs">Ver PDF actual ↗</a>` : ''}`;
+            <p class="text-xs text-gray-400 break-all mt-1">Archivo: ${n.fileName || '—'}${n.fileSize ? ' · ' + bytesFmt(n.fileSize) : ''}${n.totalChunks ? ' · ' + n.totalChunks + (n.totalChunks === 1 ? ' parte' : ' partes') + ' en Firestore' : ''}</p>
+            <a href="comunidad.html#news" target="_blank" class="inline-block mt-2 text-blue-600 underline text-xs">Ver en Comunidad ↗</a>`;
           const next = document.getElementById('newsEdition'); if (next && !next.value) next.value = (parseInt(n.edition, 10) || 0) + 1;
         } else {
           badge.innerText = '';
@@ -653,13 +657,38 @@
         const dt = document.getElementById('newsDate'); if (dt && !dt.value) dt.value = new Date().toISOString().slice(0, 10);
       }).catch(e => { cur.innerHTML = `<p class="text-red-500 text-xs">Error leyendo la edición: ${e.message}</p>`; });
     }
-    function storageFriendlyError(e) {
+    function newsFriendlyError(e) {
       const code = (e && e.code) || '', msg = (e && e.message) || '';
-      if (code.indexOf('storage/unauthorized') >= 0 || msg.indexOf('unauthorized') >= 0)
-        return 'Storage rechazó la subida: pega las reglas de storage-rules.rules en Firebase Console → Storage → Rules (y verifica que iniciaste con el correo admin).';
-      if (code.indexOf('storage/unknown') >= 0 || msg.toLowerCase().indexOf('not found') >= 0 || msg.indexOf('service') >= 0)
-        return 'Firebase Storage no está activo o no responde. Actívalo en Firebase Console → Storage → Comenzar, pega las reglas de storage-rules.rules y vuelve a intentar.';
+      if (code.indexOf('permission-denied') >= 0 || msg.indexOf('permission') >= 0 || msg.indexOf('insufficient') >= 0)
+        return 'Firestore rechazó la operación: pega firestore-rules-v5.rules en Firebase Console → Firestore → Reglas → Publicar (y verifica que iniciaste con el correo admin).';
+      if (code.indexOf('resource-exhausted') >= 0 || msg.indexOf('quota') >= 0)
+        return 'Se alcanzó la cuota gratuita de Firestore por hoy. Inténtalo de nuevo mañana.';
+      if (code.indexOf('unavailable') >= 0 || code.indexOf('deadline-exceeded') >= 0)
+        return 'Firestore no respondió. Revisa tu conexión y vuelve a intentar.';
       return msg || 'Error desconocido';
+    }
+    function bytesFmt(b) { if (!b && b !== 0) return ''; if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB'; if (b >= 1024) return Math.round(b / 1024) + ' KB'; return b + ' B'; }
+    function u8ToB64(u8) {
+      let s = ''; const STEP = 0x8000;
+      for (let i = 0; i < u8.length; i += STEP) s += String.fromCharCode.apply(null, u8.subarray(i, i + STEP));
+      return btoa(s);
+    }
+    async function deleteNewsEdition(token) {
+      // Borra los fragmentos + el doc ancla de una edición vieja (fragmentos en lotes de 5)
+      const ch = await db.collection('newsPdfs').doc(token).collection('chunks').get();
+      const docs = ch.docs.slice();
+      for (let i = 0; i < docs.length; i += 5) {
+        const batch = db.batch();
+        docs.slice(i, i + 5).forEach(d => batch.delete(d.ref));
+        await batch.commit();
+      }
+      await db.collection('newsPdfs').doc(token).delete().catch(() => {});
+    }
+    async function cleanupNewsEditions(keepToken) {
+      // Deja SOLO la edición vigente: borra cualquier otra (incluye restos de subidas fallidas)
+      const snap = await db.collection('newsPdfs').get().catch(() => null);
+      if (!snap) return;
+      for (const d of snap.docs) { if (d.id !== keepToken) await deleteNewsEdition(d.id).catch(() => {}); }
     }
     window.publishNews = async function() {
       const btn = document.getElementById('newsPublishBtn');
@@ -671,26 +700,32 @@
       if (!edition || edition < 1) return alert('Indica el número de edición (1, 2, 3…).');
       const dateVal = document.getElementById('newsDate').value;
       if (!dateVal) return alert('Indica la fecha de publicación.');
-      const old = btn.innerText; btn.disabled = true; btn.innerText = '⏳ Subiendo…';
+      const old = btn.innerText; btn.disabled = true;
       try {
-        const path = `news/edicion-${String(edition).padStart(3, '0')}-${Date.now()}.pdf`;
-        const snap = await storage.ref(path).put(file, { contentType: 'application/pdf', contentDisposition: 'inline; filename="ChochePet-News.pdf"' });
-        const url = await snap.ref.getDownloadURL();
-        // Reemplazo: borrar el PDF anterior SOLO si la subida nueva ya fue exitosa
-        const prev = await db.collection("settings").doc("news").get();
-        if (prev.exists && prev.data().storagePath && prev.data().storagePath !== path) {
-          await storage.ref(prev.data().storagePath).delete().catch(() => {});
+        btn.innerText = '⏳ Leyendo PDF…';
+        const buf = new Uint8Array(await file.arrayBuffer());
+        const total = Math.ceil(buf.length / NEWS_CHUNK_RAW) || 1;
+        const token = 'ed-' + Date.now();
+        // 1) Subir los fragmentos a Firestore (nunca toca el PDF vigente)
+        for (let i = 0; i < total; i++) {
+          btn.innerText = `⏳ Subiendo parte ${i + 1}/${total}…`;
+          const part = buf.subarray(i * NEWS_CHUNK_RAW, Math.min((i + 1) * NEWS_CHUNK_RAW, buf.length));
+          await db.collection('newsPdfs').doc(token).collection('chunks').doc(String(i)).set({ i: i, b64: u8ToB64(part) });
         }
+        await db.collection('newsPdfs').doc(token).set({ edition: edition, fileName: file.name, fileSize: file.size, totalChunks: total, createdAt: new Date().toISOString() });
+        // 2) Apuntar settings/news a la nueva edición (paso atómico para los lectores)
         await db.collection("settings").doc("news").set({
           edition: edition,
           publishedAt: firebase.firestore.Timestamp.fromDate(new Date(dateVal + 'T12:00:00')),
-          storagePath: path, downloadUrl: url, fileName: file.name,
+          editionToken: token, fileName: file.name, fileSize: file.size, totalChunks: total,
           updatedAt: new Date().toISOString()
         });
+        // 3) Limpieza SOLO tras éxito: borrar todo PDF que no sea el vigente (no acumula memoria)
+        await cleanupNewsEditions(token);
         document.getElementById('newsFile').value = '';
-        alert('✅ Edición N° ' + edition + ' publicada. Ya está disponible en comunidad.html (y el PDF anterior fue eliminado).');
+        alert('✅ Edición N° ' + edition + ' publicada (' + total + (total === 1 ? ' parte' : ' partes') + '). Ya está disponible en comunidad.html y el PDF anterior fue eliminado.');
         loadNews();
-      } catch (e) { alert('❌ Error al publicar: ' + storageFriendlyError(e)); }
+      } catch (e) { alert('❌ Error al publicar: ' + newsFriendlyError(e)); }
       finally { btn.disabled = false; btn.innerText = old; }
     }
 
