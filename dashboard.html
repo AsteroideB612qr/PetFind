@@ -149,7 +149,7 @@
           if(!petState.notesList) petState.notesList = [];
           if(settingsState.petfindWhatsapp) { document.getElementById('supportBtn').href = `https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola ChochePet')}`; document.getElementById('supportBtn').style.display = 'flex'; }
           renderDashboard();
-          db.collection("tags").doc(tagId).onSnapshot(doc => { tagState = doc.data(); renderMembership(); applyLock(); });
+          db.collection("tags").doc(tagId).onSnapshot(doc => { tagState = doc.data(); renderMembership(); applyLock(); renderLostCard(); });
           db.collection("pets").doc(tagId).onSnapshot(doc => { petState = doc.data(); if(!petState.events) petState.events = []; if(!petState.prescriptions) petState.prescriptions = []; if(!petState.notesList) petState.notesList = []; const isActive = isSubscriptionActive(); renderEvents(isActive); renderLists(isActive); });
         }
       });
@@ -176,6 +176,7 @@
       const isActive = isSubscriptionActive();
       const logoutBtn = isDemo ? `<a href="landing.html" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">🚪 Salir de Demo</a>` : `<button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">Cerrar Sesión</button>`;
       const publicLink = isDemo ? 'scan.html?demo=true' : 'scan.html?id=' + tagId;
+      const comunidadLink = isDemo ? 'comunidad.html?demo=true' : 'comunidad.html?id=' + tagId;
       const lockBanner = isDemo ? '' : `<div id="lockBanner" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-xl mb-6" style="${isActive ? 'display:none' : ''}"><p class="font-bold text-yellow-800">⭐ Panel Básico — tu perfil sigue funcionando</p><p class="text-sm text-yellow-700 mt-1">Puedes editar la <b>Foto</b>, el <b>Nombre</b> y tu <b>WhatsApp</b>. Activa Premium para desbloquear la ficha médica completa: paga desde Membresía (abajo) y cuando el administrador valide tu recibo, todo se desbloquea automáticamente.</p></div>`;
       
       document.getElementById('content').innerHTML = `
@@ -185,8 +186,6 @@
         </div>
         
         ${lockBanner}
-
-        <div id="lostPetCard" class="mb-6"><p class="text-slate-400 text-sm text-center animate-pulse">…</p></div>
 
         <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6" ${!isDemo && !isActive ? 'open' : ''}>
           <summary id="membershipSummary" class="p-6 select-none font-bold text-lg flex justify-between items-center w-full"></summary>
@@ -269,7 +268,11 @@
             </details>
           </div>
         </div>
-        <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a><a href="comunidad.html" target="_blank" class="text-slate-500 hover:text-blue-600 underline text-sm">🗞️ Ir a la Comunidad ChochePet</a></div>
+
+        <!-- 🚨 MASCOTA PERDIDA (Ronda 21: movida al final, después de la zona médica) -->
+        <div id="lostPetCard" class="mb-6"><p class="text-slate-400 text-sm text-center animate-pulse">…</p></div>
+
+        <div class="text-center pb-10"><a href="${publicLink}" target="_blank" class="text-blue-600 underline block mb-2">Ver mi perfil público</a><a href="${comunidadLink}" target="_blank" class="text-slate-500 hover:text-blue-600 underline text-sm">🗞️ Ir a la Comunidad ChochePet</a></div>
       `;
       renderMembership();
       renderEvents(isActive);
@@ -463,10 +466,20 @@
               </div>
               <div class="flex flex-wrap gap-2">
                 <a href="comunidad.html?flyer=${lostState.id}" target="_blank" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm text-center transition">👁️ Ver flyer</a>
-                <button onclick="openLostModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm transition">✏️ Editar</button>
+                ${isSubscriptionActive() ? `<button onclick="openLostModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-2.5 rounded-xl font-bold text-sm transition">✏️ Editar</button>` : ''}
                 <button onclick="markFound()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2.5 rounded-xl font-bold text-sm whitespace-nowrap transition">✅ ¡La encontraron!</button>
               </div>
             </div>
+          </div>`;
+      } else if (!isSubscriptionActive()) {
+        // Ronda 21: reportar mascota perdida es exclusivo Premium → upsell en vez del botón
+        el.innerHTML = `
+          <div class="bg-white rounded-3xl shadow-xl border-l-4 border-slate-300 p-5 flex flex-col sm:flex-row sm:items-center gap-3">
+            <div class="flex-1">
+              <p class="font-bold text-slate-800">🚨 Alerta de Mascota Perdida <span class="text-xs font-normal text-amber-600">👑 Exclusivo Premium</span></p>
+              <p class="text-sm text-slate-500">Con Premium activo puedes activar la Alerta de Búsqueda: toda la comunidad ChochePet verá el flyer de tu mascota para ayudarte a encontrarla.</p>
+            </div>
+            <button onclick="goMembership()" class="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-xl font-bold text-sm whitespace-nowrap transition">👑 Activar Premium</button>
           </div>`;
       } else {
         el.innerHTML = `
@@ -481,6 +494,7 @@
     }
     window.openLostModal = function() {
       if (isDemo) return alert('🧪 Demo: en tu cuenta real, aquí abrirías el formulario para activar la alerta de búsqueda de tu mascota.');
+      if (!isSubscriptionActive()) return alert('👑 La Alerta de Mascota Perdida es exclusiva Premium. Activa tu suscripción desde Membresía y vuelve aquí.');
       const r = lostState || {};
       document.getElementById('lpPhoto').src = window.base64Photo || petState.photoUrl || 'https://via.placeholder.com/150';
       document.getElementById('lpZone').value = r.zone || '';
@@ -529,6 +543,14 @@
         } else { alert('No se pudo guardar la alerta: ' + m); }
       }
     }
+    // Ronda 21: abre la caja de Membresía (upsell Premium desde la tarjeta de pérdida)
+    window.goMembership = function() {
+      const mb = document.getElementById('membershipBox');
+      if (!mb) return;
+      mb.open = true;
+      mb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
     window.markFound = async function() {
       if (!lostState) return;
       if (!confirm('¿Confirmas que tu mascota ya está en casa? La alerta se retirará de la Comunidad. 🎉')) return;
