@@ -126,49 +126,86 @@
     }
 
     // ═══════════ 1. CHOCHEPET NEWS ═══════════
+    // El PDF se guarda FRAGMENTADO en Firestore (newsPdfs/{token}/chunks/{i}),
+    // sin Firebase Storage: aquí se reensambla en el navegador como Blob.
     let newsState = null;
-    async function loadNews() {
+    let newsBlobUrl = null;
+    function bytesFmt(b) { if (!b && b !== 0) return ''; if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB'; if (b >= 1024) return Math.round(b / 1024) + ' KB'; return b + ' B'; }
+    function renderNewsCard(n) {
       const el = document.getElementById('newsCard');
-      try {
-        const snap = await db.collection('settings').doc('news').get();
-        if (!snap.exists) {
-          el.innerHTML = `<div class="bg-slate-100 border border-slate-200 rounded-3xl p-8"><p class="text-4xl mb-3">🗞️</p><p class="text-slate-600 font-bold">La primera edición está en camino…</p><p class="text-slate-400 text-sm mt-1">Vuelve el próximo domingo.</p></div>`;
-          return;
-        }
-        newsState = snap.data();
-        const ed = esc(newsState.edition || '—');
-        const fecha = fmtDate(newsState.publishedAt);
-        el.innerHTML = `
+      if (!n || (!n.editionToken && !n.downloadUrl)) {
+        el.innerHTML = `<div class="bg-slate-100 border border-slate-200 rounded-3xl p-8"><p class="text-4xl mb-3">🗞️</p><p class="text-slate-600 font-bold">La primera edición está en camino…</p><p class="text-slate-400 text-sm mt-1">Vuelve el próximo domingo.</p></div>`;
+        return;
+      }
+      newsState = n;
+      const ed = esc(n.edition || '—');
+      const fecha = fmtDate(n.publishedAt);
+      const meta = [fecha ? '🗓️ Publicada el ' + fecha : '', n.fileSize ? bytesFmt(n.fileSize) : ''].filter(Boolean)
+        .map(t => `<span class="text-xs text-slate-300 bg-white/10 px-3 py-1 rounded-full">${esc(t)}</span>`).join('');
+      el.innerHTML = `
           <div class="rounded-3xl overflow-hidden shadow-2xl text-left border-4" style="border-color:#D9A426;background:#22304E;">
             <div class="p-6 md:p-8 text-white">
               <p class="text-xs font-bold uppercase tracking-[0.3em]" style="color:#D9A426;">Semanario · Para la comunidad pet</p>
               <h3 class="text-4xl md:text-5xl font-extrabold mt-2 tracking-tight" style="font-stretch:condensed;">CHOCHEPET NEWS</h3>
               <div class="flex flex-wrap items-center gap-2 mt-4">
                 <span class="text-sm font-extrabold px-3 py-1 rounded-full text-slate-900" style="background:#D9A426;">Edición N° ${ed}</span>
-                ${fecha ? `<span class="text-xs text-slate-300 bg-white/10 px-3 py-1 rounded-full">🗓️ Publicada el ${fecha}</span>` : ''}
+                ${meta}
               </div>
               <p class="text-slate-300 text-sm mt-4">Noticias pet reales · Agenda de la semana · Crucigrama y sudoku · Horóscopo de la manada</p>
             </div>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4" style="background:#16203A;">
-              <a href="${esc(newsState.downloadUrl || '#')}" target="_blank" rel="noopener" class="text-center font-extrabold text-slate-900 px-6 py-4 rounded-xl hover:brightness-110 transition" style="background:#D9A426;">📖 Leer la edición</a>
+              <button onclick="openNews(this)" class="text-center font-extrabold text-slate-900 px-6 py-4 rounded-xl hover:brightness-110 transition" style="background:#D9A426;">📖 Leer la edición</button>
               <button onclick="downloadNews()" class="text-center font-extrabold text-white px-6 py-4 rounded-xl border border-white/30 hover:bg-white/10 transition">⬇️ Descargar PDF</button>
             </div>
           </div>`;
+    }
+    async function loadNews() {
+      const el = document.getElementById('newsCard');
+      try {
+        const snap = await db.collection('settings').doc('news').get();
+        renderNewsCard(snap.exists ? snap.data() : null);
       } catch (e) {
         el.innerHTML = `<div class="bg-red-50 border border-red-200 rounded-2xl p-6 text-sm text-red-600">⚠️ No se pudo cargar la edición. Revisa tu conexión e intenta recargar.</div>`;
       }
     }
-    window.downloadNews = async function() {
-      if (!newsState || !newsState.downloadUrl) return;
-      try {
-        const res = await fetch(newsState.downloadUrl);
-        if (!res.ok) throw new Error('http');
-        const blob = await res.blob();
+    function b64ToU8(b64) {
+      const bin = atob(b64), u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      return u8;
+    }
+    async function getNewsUrl() {
+      if (newsBlobUrl) return newsBlobUrl;
+      if (!newsState) throw new Error('sin-edición');
+      // Compatibilidad con un formato antiguo que guardaba una URL directa
+      if (newsState.downloadUrl && !newsState.editionToken) {
+        try { const res = await fetch(newsState.downloadUrl); if (!res.ok) throw new Error('http'); const blob = await res.blob(); newsBlobUrl = URL.createObjectURL(blob); return newsBlobUrl; }
+        catch (e) { return newsState.downloadUrl; }
+      }
+      if (!newsState.editionToken) throw new Error('sin-pdf');
+      const snap = await db.collection('newsPdfs').doc(newsState.editionToken).collection('chunks').orderBy('i').get();
+      if (snap.empty) throw new Error('pdf-no-encontrado');
+      const parts = snap.docs.map(d => b64ToU8(d.data().b64 || ''));
+      const blob = new Blob(parts, { type: 'application/pdf' });
+      newsBlobUrl = URL.createObjectURL(blob);
+      return newsBlobUrl;
+    }
+    async function withNewsBtn(btn, fn) {
+      if (btn) { btn.dataset.old = btn.innerHTML; btn.innerHTML = '⏳ Preparando…'; btn.disabled = true; btn.style.opacity = '.7'; }
+      try { await fn(); }
+      catch (e) { alert('No se pudo preparar el PDF. Revisa tu conexión e intenta de nuevo.'); }
+      finally { if (btn) { btn.innerHTML = btn.dataset.old; btn.disabled = false; btn.style.opacity = ''; } }
+    }
+    window.openNews = function(btn) {
+      withNewsBtn(btn, async () => { const url = await getNewsUrl(); window.open(url, '_blank'); });
+    };
+    window.downloadNews = function() {
+      withNewsBtn(null, async () => {
+        const url = await getNewsUrl();
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = newsState.fileName || ('ChochePet-News-Edicion-' + (newsState.edition || '') + '.pdf');
+        a.href = url;
+        a.download = newsState && newsState.fileName ? newsState.fileName : 'ChochePet-News-Edicion-' + ((newsState && newsState.edition) || '') + '.pdf';
         document.body.appendChild(a); a.click(); a.remove();
-      } catch (e) { window.open(newsState.downloadUrl, '_blank'); }
+      });
     };
 
     // ═══════════ 2. MASCOTAS PERDIDAS ═══════════
