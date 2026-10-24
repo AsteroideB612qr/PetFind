@@ -122,10 +122,8 @@
 
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla de identificación QR</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div><label class="block text-gray-700 mb-2 font-medium text-sm">Tipo de medalla de identificación QR</label><select id="planType" class="w-full p-3 border rounded-xl text-base"><option value="basic">Básica</option><option value="premium">Premium</option></select></div>
-        <div class="md:col-span-2"><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
-      </div>
+      <div><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
+      <p class="text-xs text-gray-400 mt-2 px-1">Todas las medallas se generan como <b>Kit BASIC</b>: al reclamarlas inician en Básico y pasan a Premium cuando el dueño paga o le activas la suscripción (⚙️ Gestionar → +días). El tipo ya no se elige al crear.</p>
       <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla de identificación QR</button>
     </div>
 
@@ -157,7 +155,8 @@
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🧾 Recibos Pendientes</p>
         </div>
       </div>
-      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos)</p>
+      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos) · 🏷️ Kit BASIC = tipo único con el que se generan todas</p>
+      <button onclick="normalizeKits()" class="mt-2 text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Convertir las medallas sin reclamar antiguas a Kit BASIC</button>
     </div>
 
     <details id="invBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
@@ -389,15 +388,39 @@
     function generatePlateId() { return 'PF' + Math.floor(100000 + Math.random() * 900000); }
 
     window.createTag = async function() {
-      const petName = document.getElementById('petName').value, planType = document.getElementById('planType').value, message = document.getElementById('rescueMsg').value;
+      const petName = document.getElementById('petName').value, message = document.getElementById('rescueMsg').value;
       let newId = generatePlateId(); if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
-      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: planType, claimed: false, createdAt: new Date(), vouchers: [] })
+      // Ronda 23: plan fijo 'basic'. El kit ya no se elige al crear: al reclamar inician en
+      // Básico y pasan a Premium cuando el dueño tiene suscripción activa (criterio Ronda 13).
+      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: "basic", claimed: false, createdAt: new Date(), vouchers: [] })
       .then(() => {
         const link = `https://chochepet.vercel.app/scan.html?id=${newId}`;
         showQR(link, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`);
         document.getElementById('petName').value = ""; listenTags();
       })
       .catch(e => alert("Error al crear la medalla: " + friendlyError(e)));
+    }
+
+    // Ronda 23: normalización del inventario viejo. Antes se podía generar como
+    // Básica/Premium; ahora todas nacen 'basic'. Convierte las medallas SIN reclamar
+    // que quedaron con plan:'premium'. Las reclamadas NO se tocan: su modo
+    // Premium/Básico ya lo define la suscripción del dueño.
+    window.normalizeKits = async function() {
+      try {
+        const snap = await db.collection("tags").where("claimed", "==", false).get();
+        const toFix = snap.docs.filter(d => (d.data().plan || "basic") !== "basic");
+        if (!toFix.length) { alert("✅ No hay medallas sin reclamar por convertir: todas ya son Kit BASIC."); return; }
+        if (!confirm("¿Convertir " + toFix.length + " medalla(s) SIN reclamar a Kit BASIC?\n\nSolo cambia el campo interno 'plan'. Las medallas reclamadas NO se tocan (su modo ya lo define la suscripción).")) return;
+        let done = 0;
+        for (let i = 0; i < toFix.length; i += 400) {
+          const batch = db.batch();
+          toFix.slice(i, i + 400).forEach(d => batch.update(d.ref, { plan: "basic" }));
+          await batch.commit();
+          done += toFix.slice(i, i + 400).length;
+        }
+        alert("✅ Listo: " + done + " medalla(s) sin reclamar quedaron como Kit BASIC.");
+        listenTags();
+      } catch(e) { alert("Error al convertir: " + friendlyError(e)); }
     }
 
     // changePlan eliminado (Ronda 13): el modo Premium/Básico lo define la suscripción del dueño.
@@ -415,10 +438,10 @@
       const out = [];
       const activeSub = !!(tag.claimed && tag.subscriptionExpires && expToDate(tag.subscriptionExpires) > new Date());
       if (!tag.claimed) {
-        // Sin reclamar: mostramos el tipo de kit con el que fue creada la medalla
-        out.push((tag.plan || 'basic') === 'basic'
-          ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">Kit BASIC</span>'
-          : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">Kit PREMIUM</span>');
+        // Sin reclamar: SIEMPRE Kit BASIC (Ronda 23: el kit ya no se elige al crear;
+        // aunque quede un plan:'premium' viejo sin reclamar se muestra BASIC — el modo
+        // real lo define la suscripción del dueño tras el reclamo)
+        out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">Kit BASIC</span>');
         out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-500">Sin reclamar</span>');
         return out.join('');
       }
