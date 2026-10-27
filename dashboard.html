@@ -114,8 +114,9 @@
       if (isDemo) return;
       const active = isSubscriptionActive();
       ['basicInfoDetails', 'vetDetails', 'medicalCard'].forEach(id => { const el = document.getElementById(id); if (el) el.classList.toggle('locked', !active); });
-      const banner = document.getElementById('lockBanner');
-      if (banner) banner.style.display = active ? 'none' : 'block';
+      // Ronda 24: lockBanner retirado. Los beneficios Premium ahora viven DENTRO de la
+      // sección Membresía (benefitsBox en renderMembership) y todas las secciones
+      // quedan colapsadas al entrar (aplicación discreta, sin presión de pago al abrir).
     }
 
     function calculateAge(birthDate) {
@@ -177,7 +178,6 @@
       const logoutBtn = isDemo ? `<a href="landing.html" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">🚪 Salir de Demo</a>` : `<button onclick="auth.signOut()" class="text-gray-500 hover:text-red-500 text-sm font-medium mt-2">Cerrar Sesión</button>`;
       const publicLink = isDemo ? 'scan.html?demo=true' : 'scan.html?id=' + tagId;
       const comunidadLink = isDemo ? 'comunidad.html?demo=true' : 'comunidad.html?id=' + tagId;
-      const lockBanner = isDemo ? '' : `<div id="lockBanner" class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-xl mb-6" style="${isActive ? 'display:none' : ''}"><p class="font-bold text-yellow-800">⭐ Panel Básico — tu perfil sigue funcionando</p><p class="text-sm text-yellow-700 mt-1">Puedes editar la <b>Foto</b>, el <b>Nombre</b> y tu <b>WhatsApp</b>. Activa Premium para desbloquear la ficha médica completa: paga desde Membresía (abajo) y cuando el administrador valide tu recibo, todo se desbloquea automáticamente.</p></div>`;
       
       document.getElementById('content').innerHTML = `
         <div class="flex flex-col items-center mb-8 pt-8">
@@ -185,15 +185,15 @@
           <h1 class="text-3xl font-extrabold text-slate-800">${isActive ? 'Panel Premium' : 'Panel Básico'}</h1>${logoutBtn}
         </div>
         
-        ${lockBanner}
+        
 
-        <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6" ${!isDemo && !isActive ? 'open' : ''}>
-          <summary id="membershipSummary" class="p-6 select-none font-bold text-lg flex justify-between items-center w-full"></summary>
+        <details id="membershipBox" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
+          <summary id="membershipSummary" class="p-6 select-none font-bold text-lg flex justify-between items-center w-full cursor-pointer"></summary>
           <div id="membershipContent" class="p-6 pt-0 space-y-4"></div>
         </details>
 
-        <div id="profileCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6">
-          <div class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center"><h2 class="text-xl font-bold">Perfil de la Mascota</h2><span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Medalla: ${isDemo ? 'DEMO123' : tagId}</span></div>
+        <details id="profileCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 group">
+          <summary class="p-6 bg-gradient-to-r from-blue-600 to-indigo-700 text-white flex justify-between items-center cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"><h2 class="text-xl font-bold">Perfil de la Mascota</h2><span class="flex items-center gap-2 shrink-0"><span class="text-sm bg-white/20 px-3 py-1 rounded-full font-mono">Medalla: ${isDemo ? 'DEMO123' : tagId}</span><span class="text-white/70 text-sm transition-transform group-open:rotate-180">▾</span></span></summary>
           <div class="p-6 space-y-5">
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Nombre</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showName" class="w-5 h-5 text-blue-600 rounded" ${petState.showName !== false ? 'checked' : ''}></div></div><input type="text" id="petName" value="${petState.name || ''}" class="w-full p-3 border rounded-xl"></div>
             <div><div class="flex justify-between items-center mb-1"><label class="font-medium text-sm">Foto</label><div class="flex items-center gap-2"><span class="text-xs text-gray-500">Público</span><input type="checkbox" id="showPhoto" class="w-5 h-5 text-blue-600 rounded" ${petState.showPhoto !== false ? 'checked' : ''}></div></div><div class="flex flex-col items-center mb-4 mt-2"><img id="imgPreview" src="${petState.photoUrl || 'https://via.placeholder.com/150'}" class="w-32 h-32 rounded-full object-cover shadow-lg mb-2 border-4 border-white"><input type="file" id="photoFile" accept="image/*" class="hidden" onchange="handleFileSelect(event)"><button onclick="document.getElementById('photoFile').click()" class="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm">📸 Subir Foto</button></div></div>
@@ -239,10 +239,10 @@
             <div><label class="block font-medium mb-1">WhatsApp Dueño</label><div class="flex gap-2"><select id="petCountry" class="w-1/3 p-3 border rounded-xl"><option value="51" ${currentCountry==='51'?'selected':''}>🇵🇪 +51</option><option value="52" ${currentCountry==='52'?'selected':''}>🇲🇽 +52</option><option value="57" ${currentCountry==='57'?'selected':''}>🇨🇴 +57</option><option value="54" ${currentCountry==='54'?'selected':''}>🇦🇷 +54</option><option value="56" ${currentCountry==='56'?'selected':''}>🇨🇱 +56</option><option value="34" ${currentCountry==='34'?'selected':''}>🇪🇸 +34</option><option value="1" ${currentCountry==='1'?'selected':''}>🇺🇸 +1</option></select><input type="text" id="petPhone" value="${currentPhone}" class="w-2/3 p-3 border rounded-xl"></div></div>
             <button onclick="savePublicProfile()" class="w-full bg-blue-600 text-white px-6 py-3 rounded-xl font-bold">💾 Guardar Perfil</button>
           </div>
-        </div>
+        </details>
         
-        <div id="medicalCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 ${!isDemo && !isActive ? 'locked' : ''}">
-          <div class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex justify-between items-center"><h2 class="text-xl font-bold">📋 Expediente Médico</h2><button onclick="sendHistoryToVet()" class="bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-bold hover:bg-white/30">👨‍⚕️ Enviar al Vet</button></div>
+        <details id="medicalCard" class="bg-white rounded-3xl shadow-xl overflow-hidden mb-6 ${!isDemo && !isActive ? 'locked' : ''} group">
+          <summary class="p-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white flex justify-between items-center cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden"><h2 class="text-xl font-bold">📋 Expediente Médico</h2><button onclick="event.preventDefault(); event.stopPropagation(); sendHistoryToVet()" class="bg-white/20 text-white text-sm px-4 py-2 rounded-lg font-bold hover:bg-white/30">👨‍⚕️ Enviar al Vet</button></summary>
           <div class="p-6 space-y-4">
             <div class="bg-slate-50 p-4 rounded-xl border"><h3 class="font-bold mb-3 text-sm text-slate-600">➕ Agregar Evento</h3><div class="grid grid-cols-2 gap-3"><select id="evType" class="p-2 border rounded-lg w-full"><option>Vacuna</option><option>Desparasitación</option><option>Cita Médica</option><option>Otro</option></select><input type="text" id="evName" class="w-full p-2 border rounded-lg" placeholder="Nombre"><input type="date" id="evDate" class="w-full p-2 border rounded-lg"><select id="evStatus" class="p-2 border rounded-lg w-full"><option>Pendiente</option><option>Realizado</option></select></div><button onclick="addEvent()" class="mt-3 w-full bg-emerald-600 text-white py-2 rounded-lg">Agregar Evento</button></div>
             
@@ -267,7 +267,7 @@
               <div id="notesList" class="space-y-2 mt-3"></div>
             </details>
           </div>
-        </div>
+        </details>
 
         <!-- 🚨 MASCOTA PERDIDA (Ronda 21: movida al final, después de la zona médica) -->
         <div id="lostPetCard" class="mb-6"><p class="text-slate-400 text-sm text-center animate-pulse">…</p></div>
@@ -294,6 +294,10 @@
       document.getElementById('membershipSummary').className = `p-6 select-none font-bold text-lg flex justify-between items-center w-full ${summaryColor}`;
       document.getElementById('membershipSummary').innerHTML = `<span>${summaryText}</span><span class="text-xs text-slate-400 font-normal">Toca para gestionar</span>`;
 
+      // Ronda 24: beneficios Premium en caja discreta DENTRO de Membresía (antes era el
+      // lockBanner amarillo arriba de todo). Se muestra a quienes aún no pagan.
+      const benefitsBox = `<div class="bg-slate-50 border border-slate-100 rounded-xl p-3 text-xs text-slate-500 leading-relaxed"><b class="text-slate-600">👑 Tu perfil ya está activo y protegido.</b> Con Premium desbloqueas: 🏥 la ficha médica completa (eventos, recetas y notas privadas), 🚨 la Alerta de Mascota Perdida con flyer para toda la comunidad y 🗞️ la Comunidad ChochePet exclusiva (News y beneficios de locales aliados).</div>`;
+
       const paymentForm = `<div class="text-center space-y-3 border-t border-slate-200 pt-4 mt-4"><p class="text-gray-600 font-medium">Realiza el pago de S/ ${settingsState.subPrice || '14.90'} a:</p><div class="bg-slate-50 p-4 rounded-xl border flex justify-between items-center"><div><p class="font-bold text-slate-800">${settingsState.walletName}</p><p class="text-lg">${settingsState.walletNumber}</p></div><button onclick="navigator.clipboard.writeText('${settingsState.walletNumber}'); alert('¡Copiado!')" class="bg-blue-100 text-blue-700 px-3 py-2 rounded-lg text-sm">📋 Copiar</button></div><input type="file" id="voucherFile" accept="image/*" class="hidden" onchange="handleVoucherSelect(event)"><button id="voucherUploadBtn" onclick="document.getElementById('voucherFile').click()" class="w-full bg-yellow-100 text-yellow-700 px-4 py-3 rounded-xl font-medium">🧾 Adjuntar Recibo</button><div id="voucherStatus" class="text-green-600 font-bold text-sm hidden">✅ Recibo cargado</div><button id="voucherSendBtn" onclick="submitVoucher()" class="w-full bg-orange-600 text-white px-6 py-3 rounded-xl font-bold opacity-50 pointer-events-none">Solicitar Activación</button></div>`;
       
       let membershipHTML = '';
@@ -302,7 +306,7 @@
       } else if (payStatus === 'pending') { membershipHTML = `<p class="text-blue-600 font-bold text-center animate-pulse">⏳ Recibo enviado, esperando revisión...</p>`; } 
       else if (payStatus === 'approved') { membershipHTML = `<p class="text-blue-600 font-bold text-center">✅ Pago aprobado. El administrador activará tu suscripción en breve.</p>`; } 
       else if (payStatus === 'rejected') { membershipHTML = `<p class="text-red-500 text-center mb-4">❌ Tu recibo fue rechazado. Contacta a soporte o adjunta uno nuevo:</p><a href="https://wa.me/${settingsState.petfindWhatsapp}?text=${encodeURIComponent(settingsState.waSupportMsg || 'Hola ChochePet')}" target="_blank" class="w-full bg-green-500 text-white px-6 py-3 rounded-xl font-bold text-center block mb-4">💬 Contactar Soporte</a>${paymentForm}`; } 
-      else { membershipHTML = `${paymentForm}`; }
+      else { membershipHTML = benefitsBox + paymentForm; }
       
       // "Bajar a Básico" eliminado (Ronda 13): el modo lo decide el pago de la suscripción.
       
