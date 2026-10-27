@@ -31,7 +31,7 @@
   <!-- HERO SECTION -->
   <header class="hero-grad text-white py-16 px-4">
     <div class="max-w-3xl mx-auto text-center">
-      <span id="heroPromo" class="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block animate-pulse">🎁 Promo de Lanzamiento: 1 Mes Premium + Medalla de identificación QR de Cortesía</span>
+      <span id="heroPromo" class="bg-green-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-4 inline-block animate-pulse">🎁 Promo de Lanzamiento: 1 Mes Premium + Medalla de identificación QR</span>
       <h1 class="text-4xl md:text-5xl font-extrabold mb-6 leading-tight">
         ¿Qué pasaría si tu mejor amigo se pierde <br> y <span class="text-orange-400">nadie sabe cómo ayudarlo?</span>
       </h1>
@@ -143,7 +143,7 @@
     <div class="max-w-4xl mx-auto text-center">
       <h2 class="text-3xl font-bold text-slate-800 mb-2">Elige el plan ideal para tu mascota</h2>
       <p class="text-slate-500 mb-2">Una pequeña inversión, por un gran amigo.</p>
-      <p class="text-green-600 font-bold mb-10">🎁 ¡Promo de Lanzamiento! 1 mes de Premium + tu Medalla de identificación QR de cortesía por S/ <span id="promoPriceIntro">29.80</span>.</p>
+      <p class="text-green-600 font-bold mb-10">🎁 ¡Promo de Lanzamiento! 1 mes de Premium + tu Medalla de identificación QR por S/ <span id="promoPriceIntro">29.80</span>.</p>
       
       <div class="grid md:grid-cols-3 gap-6 text-left items-start">
         <div class="bg-white p-8 rounded-3xl border-2 border-slate-200 shadow-lg hover:scale-105 transition">
@@ -170,12 +170,12 @@
               <span id="promoAnchor" class="text-slate-400 line-through text-lg">S/ 49.80</span>
               <span class="text-4xl font-extrabold text-white">S/ <span id="promoPrice">29.80</span></span>
             </div>
-            <p class="text-green-400 text-sm font-bold mt-1">💰 Ahorras S/ <span id="promoSavings">20.00</span>: 1 MES de Premium + tu Medalla de identificación QR de cortesía GRATIS.</p>
+            <p class="text-green-400 text-sm font-bold mt-1">💰 Ahorras S/ <span id="promoSavings">20.00</span>: 1 MES de Premium + tu Medalla de identificación QR incluida.</p>
           </div>
           <ul class="space-y-3 text-slate-300 text-sm mb-8">
             <li class="flex gap-2">✅ <span><strong class="text-white">Todo lo del Plan Premium</strong>, sin límites.</span></li>
             <li class="flex gap-2">✅ <span><strong class="text-white">1 mes completo</strong> de perfil Premium activo.</span></li>
-            <li class="flex gap-2">✅ <span><strong class="text-white">Medalla de identificación QR de cortesía incluida</strong> (pago único).</span></li>
+            <li class="flex gap-2">✅ <span><strong class="text-white">Medalla de identificación QR incluida</strong> (pago único).</span></li>
             <li class="flex gap-2">✅ <span>Después solo renuevas si te encantó: S/ <span class="renewPrice">14.90</span>/mes.</span></li>
           </ul>
           <a id="promoCta" href="#" target="_blank" class="block text-center bg-green-500 text-white py-3 rounded-xl font-bold hover:bg-green-600">🔥 Quiero la Promo</a>
@@ -245,7 +245,7 @@
         const s = snap.data();
         const bPrice = s.basicPrice || "20.00";    // Básico: pago único
         const prPrice = s.premiumPrice || "34.90"; // Premium: Medalla de identificación QR + 1er mes
-        const poPrice = s.promoPrice || "29.80";   // Promo: 1 mes + Medalla de identificación QR de cortesía
+        const poPrice = s.promoPrice || "29.80";   // Promo: 1 mes + Medalla de identificación QR
         const rPrice = s.subPrice || "14.90";      // Renovación mensual Premium
         const wa = s.petfindWhatsapp || "";
         
@@ -259,16 +259,16 @@
         document.getElementById('promoAnchor').innerText = "S/ " + anchor;
         document.getElementById('promoSavings').innerText = save;
         document.querySelectorAll('.renewPrice').forEach(el => el.innerText = rPrice);
-        if (wa) document.getElementById('heroPromo').innerText = "🎁 Promo Lanzamiento: 1 Mes Premium + Medalla de identificación QR de Cortesía por S/ " + poPrice;
+        if (wa) document.getElementById('heroPromo').innerText = "🎁 Promo Lanzamiento: 1 Mes Premium + Medalla de identificación QR por S/ " + poPrice;
         
         // CTAs con mensaje pre-llenado por plan (así sabes qué quiere cada cliente)
         const link = (msg) => `https://wa.me/${wa}?text=${encodeURIComponent(msg)}`;
         document.getElementById('navCta').href = link(`Hola ChochePet 🐾 Vi la promo de lanzamiento (1 mes Premium + Medalla de identificación QR por S/ ${poPrice}) y quiero una para mi mascota.`);
-        document.getElementById('heroCta').href = link(`Hola ChochePet 🔥 Quiero aprovechar la Promo de Lanzamiento: 1 mes de Premium + Medalla de identificación QR de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
-        document.getElementById('footerCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento (1 mes Premium + Medalla de identificación QR de cortesía por S/ ${poPrice}).`);
+        document.getElementById('heroCta').href = link(`Hola ChochePet 🔥 Quiero aprovechar la Promo de Lanzamiento: 1 mes de Premium + Medalla de identificación QR por S/ ${poPrice}. ¿Cómo la pido?`);
+        document.getElementById('footerCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento (1 mes Premium + Medalla de identificación QR por S/ ${poPrice}).`);
         document.getElementById('basicCta').href = link(`Hola ChochePet 🐾 Quiero el Plan Básico (S/ ${bPrice}, pago único) para mi mascota. ¿Me pasas info para pedirla?`);
         document.getElementById('premiumCta').href = link(`Hola ChochePet 👑 Quiero el Plan Premium (S/ ${prPrice} la Medalla de identificación QR, 1er mes incluido). ¿Cómo la pido?`);
-        document.getElementById('promoCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento: 1 mes de Premium + Medalla de identificación QR de cortesía por S/ ${poPrice}. ¿Cómo la pido?`);
+        document.getElementById('promoCta').href = link(`Hola ChochePet 🔥 Quiero la Promo de Lanzamiento: 1 mes de Premium + Medalla de identificación QR por S/ ${poPrice}. ¿Cómo la pido?`);
       }
     }
     loadLandingData();
