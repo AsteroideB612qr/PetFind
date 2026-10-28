@@ -157,6 +157,7 @@
       </div>
       <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos) · 🏷️ Kit BASIC = tipo único con el que se generan todas</p>
       <button onclick="normalizeKits()" class="mt-2 text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Convertir las medallas sin reclamar antiguas a Kit BASIC</button>
+      <button onclick="cleanOrphanLost()" class="mt-1 block text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Limpiar falsas alarmas de mascota perdida (avisos de medallas ya eliminadas)</button>
     </div>
 
     <details id="invBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
@@ -423,6 +424,38 @@
       } catch(e) { alert("Error al convertir: " + friendlyError(e)); }
     }
 
+    // 🧹 LIMPIEZA DE FALSAS ALARMAS: borra los avisos de mascota perdida cuya
+    // medalla YA NO EXISTE (quedaron huérfanos al eliminar medallas de prueba
+    // con versiones anteriores de deleteTag). Comunidad.html ya los oculta por
+    // su cuenta; esto limpia el dato de raíz. Los avisos de medallas vigentes
+    // (activos o marcados encontrados) NO se tocan.
+    window.cleanOrphanLost = async function() {
+      try {
+        const snap = await db.collection("lostPets").get();
+        if (snap.empty) { alert("✅ No hay avisos de mascota perdida registrados. Nada que limpiar."); return; }
+        const reports = snap.docs.map(d => Object.assign({ ref: d.ref }, d.data()));
+        const tagIds = [...new Set(reports.map(r => r.tagId).filter(Boolean))];
+        const alive = new Set();
+        for (let i = 0; i < tagIds.length; i += 10) { // 'in' admite máx. 10 IDs por consulta
+          const chunk = tagIds.slice(i, i + 10);
+          const ts = await db.collection("tags").where(firebase.firestore.FieldPath.documentId(), "in", chunk).get();
+          ts.forEach(d => alive.add(d.id));
+        }
+        const orphans = reports.filter(r => !alive.has(r.tagId));
+        if (!orphans.length) { alert("✅ Todo limpio: ninguna alerta es una falsa alarma."); return; }
+        const lista = orphans.slice(0, 15).map(r => "• " + (r.petName || r.ref.id)).join("\n") + (orphans.length > 15 ? "\n… y " + (orphans.length - 15) + " más" : "");
+        if (!confirm("Se eliminarán " + orphans.length + " aviso(s) de mascota perdida cuya medalla ya NO existe (falsas alarmas):\n\n" + lista + "\n\n¿Continuar?")) return;
+        let done = 0;
+        for (let i = 0; i < orphans.length; i += 400) {
+          const batch = db.batch();
+          orphans.slice(i, i + 400).forEach(r => batch.delete(r.ref));
+          await batch.commit();
+          done += orphans.slice(i, i + 400).length;
+        }
+        alert("✅ Listo: se eliminaron " + done + " falsa(s) alarma(s). La comunidad ya no las ve.");
+      } catch(e) { alert("Error al limpiar: " + friendlyError(e)); }
+    }
+
     // changePlan eliminado (Ronda 13): el modo Premium/Básico lo define la suscripción del dueño.
     let tagsCache = {};
     let currentManageId = null;
@@ -652,7 +685,7 @@
         if (days === 0) alert("🔧 Fecha normalizada al formato nuevo (Timestamp). Si el perfil estaba activo, el dueño ya puede editar; si estaba vencido, dale +30d para activarlo.");
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
-    window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
+    window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); try { const lostSnap = await db.collection("lostPets").where("tagId", "==", tagId).get(); for (const d of lostSnap.docs) { await db.collection("lostPets").doc(d.id).delete().catch(()=>{}); } } catch(e2) { /* sin aviso o sin permiso: la medalla ya quedó eliminada y el filtro de comunidad.html oculta avisos huérfanos */ } listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
 
     // ♻️ RESTAURAR ESTADO ORIGINAL: deja la medalla exactamente como recién generada
     // (createTag: claimed:false, phone:"", vouchers:[]), borrando ownerId, suscripción,
