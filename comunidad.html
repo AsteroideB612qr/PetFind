@@ -266,19 +266,39 @@
       db.collection('lostPets').where('status', '==', 'active').onSnapshot(snap => {
         lostCache = snap.docs.map(d => Object.assign({ id: d.id }, d.data()));
         lostCache.sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
-        renderLost();
+        verifyLostTags();
       }, err => {
         console.error('lostPets:', err);
         grid.innerHTML = `<div class="col-span-full bg-red-50 border border-red-200 rounded-2xl p-6 text-sm text-red-600 text-center">⚠️ No se pudo cargar la lista. Si acabas de publicar las reglas nuevas, recarga en unos segundos.</div>`;
       });
     }
+    // Filtro anti-falsas alarmas: si una medalla fue ELIMINADA (p.ej. pruebas del
+    // superadmin), su aviso queda huérfano en lostPets y seguiría apareciendo aquí.
+    // Antes de pintar, se verifica que la medalla de cada aviso SIGA existiendo;
+    // las huérfanas no se muestran. Si falla la verificación (red), se muestran
+    // todas: mejor un aviso de más que ocultar uno real.
+    let validTagIds = null;
+    async function verifyLostTags() {
+      const ids = [...new Set(lostCache.map(p => p.tagId).filter(Boolean))];
+      const next = new Set();
+      try {
+        for (let i = 0; i < ids.length; i += 10) { // 'in' admite máx. 10 IDs por consulta
+          const chunk = ids.slice(i, i + 10);
+          const s = await db.collection('tags').where(firebase.firestore.FieldPath.documentId(), 'in', chunk).get();
+          s.forEach(d => next.add(d.id));
+        }
+        validTagIds = next;
+      } catch (e) { console.error('verifyLostTags:', e); validTagIds = null; }
+      renderLost();
+    }
     function renderLost() {
       const grid = document.getElementById('lostGrid');
-      if (!lostCache.length) {
+      const visibles = validTagIds ? lostCache.filter(p => validTagIds.has(p.tagId)) : lostCache;
+      if (!visibles.length) {
         grid.innerHTML = `<div class="col-span-full bg-green-50 border border-green-200 rounded-2xl p-8"><p class="text-4xl mb-2">🎉</p><p class="text-green-700 font-bold">No hay mascotas perdidas ahora mismo.</p><p class="text-green-600/70 text-sm mt-1">¡Buenas noticias para la manada! Si tu mascota se pierde, activa la alerta desde tu panel.</p></div>`;
         return;
       }
-      grid.innerHTML = lostCache.map(p => {
+      grid.innerHTML = visibles.map(p => {
         const tel = digits(p.contactPhone);
         const waMsg = encodeURIComponent(`¡Hola! Vi el flyer de ${p.petName || 'tu mascota'} en la Comunidad ChochePet. Tengo información sobre ${p.petName || 'ella'} 🐾`);
         const sub = [p.species, p.breed].filter(Boolean).map(esc).join(' · ');
