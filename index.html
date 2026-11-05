@@ -123,6 +123,7 @@
     <div class="bg-white p-6 md:p-8 rounded-2xl shadow-xl mb-8 border border-gray-100">
       <h2 class="text-xl md:text-2xl font-bold mb-6 text-gray-800">🏷️ Generar Nueva Medalla de identificación QR</h2>
       <div><label class="block text-gray-700 mb-2 font-medium text-sm">Nombre interno</label><input type="text" id="petName" placeholder="Lote 1 - Medalla 05" class="w-full p-3 border rounded-xl text-base"></div>
+      <label class="flex items-start gap-2 mt-3 px-1 text-sm text-gray-600 cursor-pointer"><input type="checkbox" id="trialGift" class="mt-0.5 w-4 h-4 accent-amber-500"><span>🎁 Esta venta incluye <b>prueba Premium</b>: el dueño verá el botón "Probar Premium" en su panel al reclamar (se activa una sola vez; días configurables en ⚙️ Gestionar).</span></label>
       <p class="text-xs text-gray-400 mt-2 px-1">Todas las medallas se generan como <b>Kit BASIC</b>: al reclamarlas inician en Básico y pasan a Premium cuando el dueño paga o le activas la suscripción (⚙️ Gestionar → +días). El tipo ya no se elige al crear.</p>
       <button onclick="createTag()" class="mt-4 w-full bg-blue-600 text-white px-6 py-4 rounded-xl font-bold text-base">Generar Medalla de identificación QR</button>
     </div>
@@ -155,7 +156,7 @@
           <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mt-1">🧾 Recibos Pendientes</p>
         </div>
       </div>
-      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos) · 🏷️ Kit BASIC = tipo único con el que se generan todas</p>
+      <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa de paga · 🎁 PREMIUM·PROMO = premium de promoción (prueba) · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos) · 🏷️ Kit BASIC = tipo único con el que se generan todas · Prueba Premium por placa: ⚙️ Gestionar</p>
       <button onclick="normalizeKits()" class="mt-2 text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Convertir las medallas sin reclamar antiguas a Kit BASIC</button>
       <button onclick="cleanOrphanLost()" class="mt-1 block text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Limpiar falsas alarmas de mascota perdida (avisos de medallas ya eliminadas)</button>
     </div>
@@ -382,7 +383,7 @@
       });
     }
     window.closeVoucher = function() { document.getElementById('voucherModal').classList.add('hidden'); }
-    window.approveVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "approved" }); v.status = "approved"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("¡Aprobado! Recuerda darle +30d."); showVouchers(tagId); } } catch(e) { alert("Error al aprobar: " + friendlyError(e)); } }
+    window.approveVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "approved", subscriptionType: "paid" }); v.status = "approved"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("¡Aprobado! Recuerda darle +30d (los días se suman sobre lo restante)."); showVouchers(tagId); } } catch(e) { alert("Error al aprobar: " + friendlyError(e)); } }
     window.rejectVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v), paymentStatus: "rejected" }); v.status = "rejected"; await ref.update({ vouchers: firebase.firestore.FieldValue.arrayUnion(v) }); alert("Rechazado."); showVouchers(tagId); } } catch(e) { alert("Error al rechazar: " + friendlyError(e)); } }
     window.resolveVoucher = async function(tagId, vid) { try { const ref = db.collection("tags").doc(tagId); const doc = await ref.get(); let vs = doc.data().vouchers || []; let v = vs.find(x => x.id === vid); if(v) { await ref.update({ vouchers: firebase.firestore.FieldValue.arrayRemove(v) }); if(vs.length === 1) await ref.update({ paymentStatus: "none" }); alert("Superado."); showVouchers(tagId); } } catch(e) { alert("Error: " + friendlyError(e)); } }
 
@@ -390,14 +391,17 @@
 
     window.createTag = async function() {
       const petName = document.getElementById('petName').value, message = document.getElementById('rescueMsg').value;
+      // Ronda 26: si la venta incluye la promoción, la medalla nace con el botón
+      // de prueba habilitado (trialEnabled) para que el dueño se lo active solo.
+      const trialGift = !!(document.getElementById('trialGift') && document.getElementById('trialGift').checked);
       let newId = generatePlateId(); if((await db.collection("tags").doc(newId).get()).exists) newId = generatePlateId();
       // Ronda 23: plan fijo 'basic'. El kit ya no se elige al crear: al reclamar inician en
       // Básico y pasan a Premium cuando el dueño tiene suscripción activa (criterio Ronda 13).
-      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: "basic", claimed: false, createdAt: new Date(), vouchers: [] })
+      db.collection("tags").doc(newId).set({ petName, phone: "", message, plan: "basic", claimed: false, createdAt: new Date(), vouchers: [], trialEnabled: trialGift, trialUsed: false })
       .then(() => {
         const link = `https://chochepet.vercel.app/scan.html?id=${newId}`;
         showQR(link, `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${link}`);
-        document.getElementById('petName').value = ""; listenTags();
+        document.getElementById('petName').value = ""; if (document.getElementById('trialGift')) document.getElementById('trialGift').checked = false; listenTags();
       })
       .catch(e => alert("Error al crear la medalla: " + friendlyError(e)));
     }
@@ -478,9 +482,12 @@
         out.push('<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-100 text-gray-500">Sin reclamar</span>');
         return out.join('');
       }
-      // Reclamada: el modo lo define la suscripción (Premium activa o Básico)
+      // Reclamada: el modo lo define la suscripción (Premium activa o Básico).
+      // Ronda 26: el premium activo distingue DE PAGA (👑) de PROMOCIÓN (🎁, prueba)
       out.push(activeSub
-        ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">PREMIUM</span>'
+        ? (tag.subscriptionType === 'promo'
+          ? '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-amber-100 text-amber-700" title="Premium de promoción: activado con el botón de prueba, sin pago">🎁 PREMIUM&middot;PROMO</span>'
+          : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-purple-100 text-purple-700">PREMIUM</span>')
         : '<span class="text-xs px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-700">BÁSICO</span>');
       if (tag.subscriptionExpires) {
         const exp = expToDate(tag.subscriptionExpires);
@@ -626,6 +633,26 @@
       const waSales = (tag.phone && !activeSub) ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Sabias que con el Plan Premium de ChochePet tu mascota tendria su perfil web e historial medico? Escribeme para activarlo. \u{1F43E}')}" target="_blank" class="bg-purple-100 text-purple-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F6CD}'} Ofrecer Premium</a>` : '';
       const waRenew = (tag.phone && daysLeft !== null && daysLeft <= 5) ? `<a href="https://wa.me/${tag.phone}?text=${encodeURIComponent('Hola! Tu plan Premium de ChochePet vence en ' + daysLeft + ' dias. Recuerda renovarlo desde tu panel. \u{1F43E}')}" target="_blank" class="bg-green-100 text-green-700 px-3 py-2 rounded-xl text-sm font-bold text-center">${'\u{1F514}'} Recordar Pago</a>` : '';
       const safePhone = (tag.phone || '').replace(/'/g, '');
+      // Ronda 26: control de prueba Premium por placa + marcador de pago/promoción
+      const hadSub = !!tag.subscriptionExpires;
+      const trialOn = tag.trialEnabled === true;
+      const trialCtrl = hadSub
+        ? `<p class="text-xs text-gray-400 bg-slate-50 border border-slate-100 rounded-xl p-2.5 mb-4">🎁 Prueba Premium: no aplica — esta placa ya tuvo una suscripción. Para regalar días usa los botones de arriba.</p>`
+        : `<div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
+            <p class="text-xs font-bold text-amber-800 mb-1.5">🎁 Prueba Premium por placa ${trialOn ? '· HABILITADA ✅' : '· desactivada'}</p>
+            <div class="flex gap-1.5">
+              <input id="trialDaysIn" type="number" min="1" max="90" value="${tag.trialDays || 30}" class="w-16 border rounded-lg px-2 py-1.5 text-sm text-center" title="Días de prueba (1-90)">
+              <button onclick="toggleTrial('${tagId}')" class="flex-1 ${trialOn ? 'bg-gray-200 text-gray-700' : 'bg-amber-500 hover:bg-amber-600 text-white'} py-1.5 rounded-lg text-xs font-bold">${trialOn ? '⏸️ Desactivar botón' : '▶️ Habilitar botón'}</button>
+            </div>
+            <p class="text-[11px] text-amber-700/80 mt-1.5">Con el botón habilitado, el dueño ve "Probar Premium" en su panel y se activa solo UNA vez. También sirve en placas sin reclamar: se prepara para la venta.</p>
+          </div>`;
+      const subTypeTxt = tag.subscriptionType === 'promo' ? '🎁 Promoción (prueba)' : '💳 De paga';
+      const markerCtrl = tag.claimed
+        ? `<div class="flex items-center justify-between gap-2 bg-slate-50 border border-slate-200 rounded-xl p-2.5 mb-4">
+             <p class="text-xs text-gray-600">Premium actual: <b>${subTypeTxt}</b>${activeSub ? '' : ' <span class="text-gray-400">(sin suscripción activa)</span>'}</p>
+             <button onclick="flipSubType('${tagId}')" class="text-xs bg-white border border-slate-300 px-2.5 py-1.5 rounded-lg font-bold text-gray-700 hover:bg-gray-50 whitespace-nowrap">${tag.subscriptionType === 'promo' ? '💳 Marcar De paga' : '🎁 Marcar Promoción'}</button>
+           </div>`
+        : '';
       document.getElementById('mngActions').innerHTML = `
         <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Suscripcion</h4>
         <div class="grid grid-cols-5 gap-1.5 mb-4">
@@ -635,6 +662,8 @@
           <button onclick="closeManage(); adjustDays('${tagId}', 30)" class="bg-green-100 text-green-700 py-2 rounded-lg text-xs font-bold">+30d</button>
           <button onclick="closeManage(); adjustDays('${tagId}', 0)" class="bg-yellow-100 text-yellow-700 py-2 rounded-lg text-xs font-bold" title="Normalizar: guarda la misma fecha en formato Timestamp sin cambiar los dias">&#128295;</button>
         </div>
+        ${markerCtrl}
+        ${trialCtrl}
         <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Acciones</h4>
         <div class="grid grid-cols-2 gap-1.5 mb-4">
           <button onclick="closeManage(); showVouchers('${tagId}')" class="bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-sm font-bold">${'\u{1F9FE}'} Recibos (${vc})</button>
@@ -685,6 +714,36 @@
         if (days === 0) alert("🔧 Fecha normalizada al formato nuevo (Timestamp). Si el perfil estaba activo, el dueño ya puede editar; si estaba vencido, dale +30d para activarlo.");
       } catch(e) { alert("Error al ajustar días: " + friendlyError(e)); }
     }
+    // 🎁 RONDA 26: prueba Premium por placa. El admin habilita/deshabilita el botón
+    // que el dueño verá UNA sola vez en su panel (RAMA C de las reglas v6 activa
+    // subscriptionExpires = hoy + N días; el flag trialUsed impide repetirla).
+    window.toggleTrial = async function(tagId) {
+      const tag = tagsCache[tagId] || {};
+      const on = tag.trialEnabled === true;
+      try {
+        if (on) {
+          await db.collection("tags").doc(tagId).update({ trialEnabled: false });
+          alert("⏸️ Botón de prueba DESACTIVADO: el dueño dejó de ver la oferta. (Si ya la usó, su suscripción sigue igual.)");
+        } else {
+          const days = parseInt((document.getElementById('trialDaysIn') || {}).value, 10);
+          if (!days || days < 1 || days > 90) return alert("Días de prueba inválidos: usa un número entre 1 y 90.");
+          await db.collection("tags").doc(tagId).update({ trialEnabled: true, trialDays: days });
+          alert("🎁 Botón de prueba ACTIVADO (" + days + " días): el dueño verá 'Probar Premium' en su panel y podrá activarlo una sola vez, sin pasar por ti.");
+        }
+        closeManage(); listenTags();
+      } catch(e) { alert("Error al configurar la prueba: " + friendlyError(e)); }
+    }
+    // 🏷️ Marcador histórico: distingue premium de paga (recibo aprobado) del de
+    // promoción (prueba). Las placas viejas sin marcar se muestran como De paga.
+    window.flipSubType = async function(tagId) {
+      const tag = tagsCache[tagId] || {};
+      const to = tag.subscriptionType === 'promo' ? 'paid' : 'promo';
+      try {
+        await db.collection("tags").doc(tagId).update({ subscriptionType: to });
+        alert(to === 'promo' ? "🎁 Marcada como Premium de PROMOCIÓN." : "💳 Marcada como Premium DE PAGA.");
+        closeManage(); listenTags();
+      } catch(e) { alert("Error al marcar: " + friendlyError(e)); }
+    }
     window.deleteTag = async function(tagId) { if (!confirm("¿Eliminar la medalla " + tagId + " y su perfil? Esta acción NO se puede deshacer.")) return; try { closeManage(); await db.collection("tags").doc(tagId).delete(); await db.collection("pets").doc(tagId).delete().catch(()=>{}); try { const lostSnap = await db.collection("lostPets").where("tagId", "==", tagId).get(); for (const d of lostSnap.docs) { await db.collection("lostPets").doc(d.id).delete().catch(()=>{}); } } catch(e2) { /* sin aviso o sin permiso: la medalla ya quedó eliminada y el filtro de comunidad.html oculta avisos huérfanos */ } listenTags(); } catch(e) { alert("Error al eliminar: " + friendlyError(e)); } }
 
     // ♻️ RESTAURAR ESTADO ORIGINAL: deja la medalla exactamente como recién generada
@@ -693,7 +752,7 @@
     // La cuenta de Auth creada al reclamar NO se toca (si ese correo reclama de nuevo,
     // scan.html ya lo maneja con signIn). Úsala para pruebas o reasignar la medalla.
     window.resetTag = async function(tagId) {
-      if (!confirm("♻️ Restaurar la medalla " + tagId + " a su estado original?\n\nQuedará 'Sin reclamar', lista para un nuevo dueño, y se BORRARÁN:\n· El perfil de la mascota (foto, datos, eventos, notas, recetas)\n· El WhatsApp y el ID del dueño\n· La suscripción activa y los recibos de pago\n· El aviso de mascota perdida (si tiene uno activo)\n\nEsta acción NO se puede deshacer.")) return;
+      if (!confirm("♻️ Restaurar la medalla " + tagId + " a su estado original?\n\nQuedará 'Sin reclamar', lista para un nuevo dueño, y se BORRARÁN:\n· El perfil de la mascota (foto, datos, eventos, notas, recetas)\n· El WhatsApp y el ID del dueño\n· La suscripción activa, los recibos de pago y el marcador de paga/promoción\n· El estado del botón de prueba Premium (queda disponible para configurarlo de nuevo)\n· El aviso de mascota perdida (si tiene uno activo)\n\nEsta acción NO se puede deshacer.")) return;
       try {
         await db.collection("tags").doc(tagId).update({
           claimed: false,
@@ -701,6 +760,9 @@
           ownerId: firebase.firestore.FieldValue.delete(),
           subscriptionExpires: firebase.firestore.FieldValue.delete(),
           paymentStatus: firebase.firestore.FieldValue.delete(),
+          subscriptionType: firebase.firestore.FieldValue.delete(),
+          trialEnabled: firebase.firestore.FieldValue.delete(),
+          trialUsed: firebase.firestore.FieldValue.delete(),
           vouchers: []
         });
       } catch(e) { alert("Error al restaurar la medalla: " + friendlyError(e)); return; }
