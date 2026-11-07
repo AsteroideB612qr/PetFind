@@ -249,6 +249,11 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const auth = firebase.auth();
+    // 🇪🇸 R28b: correos de Firebase (📧 Recuperar acceso de un dueño) en ESPAÑOL con
+    // la plantilla oficial traducida. La edición de plantillas en Console está
+    // bloqueada por Firebase (EMAIL_TEMPLATE_UPDATE_NOT_ALLOWED); languageCode es
+    // la vía documentada para elegir el idioma. No afecta a Firestore ni reglas.
+    auth.languageCode = 'es';
     let currentVoucherTagId = null, currentPhoneTagId = null, currentQRLink = "";
 
     // Convierte a Date aceptando Timestamp de Firestore O string ISO (compatibilidad con datos antiguos)
