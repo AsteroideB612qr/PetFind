@@ -159,6 +159,7 @@
       <p class="text-xs text-gray-400 mt-2 px-1">👑 Premium = reclamadas con suscripción activa de paga · 🎁 PREMIUM·PROMO = premium de promoción (prueba) · 🐶 Básico = las demás reclamadas · 📦 Disponibles = aún sin reclamar · 🧾 Recibos pendientes = pagos por revisar (⚙️ Gestionar → Recibos) · 🏷️ Kit BASIC = tipo único con el que se generan todas · Prueba Premium por placa: ⚙️ Gestionar</p>
       <button onclick="normalizeKits()" class="mt-2 text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Convertir las medallas sin reclamar antiguas a Kit BASIC</button>
       <button onclick="cleanOrphanLost()" class="mt-1 block text-xs text-gray-500 hover:text-gray-800 underline px-1">🧹 Limpiar falsas alarmas de mascota perdida (avisos de medallas ya eliminadas)</button>
+      <button onclick="sendOwnerReset()" class="mt-1 block text-xs text-gray-500 hover:text-gray-800 underline px-1" title="Si un dueño olvidó su contraseña: pídele su correo por WhatsApp y envíale el enlace oficial de recuperación de Firebase">📧 Recuperar acceso de un dueño (contraseña olvidada)</button>
     </div>
 
     <details id="invBox" class="bg-white p-4 md:p-6 rounded-2xl shadow-xl border border-gray-100">
@@ -458,6 +459,31 @@
         }
         alert("✅ Listo: se eliminaron " + done + " falsa(s) alarma(s). La comunidad ya no las ve.");
       } catch(e) { alert("Error al limpiar: " + friendlyError(e)); }
+    }
+
+    // 📧 RONDA 28: RECUPERACIÓN DE ACCESO DE UN DUEÑO (Firebase Auth nativo; NO usa
+    // Firestore ni reglas). Los correos de los dueños no se guardan en Firestore: pídele
+    // el correo al dueño por WhatsApp, pégalo aquí y Firebase le envía el enlace oficial
+    // para crear una contraseña nueva. La medalla y su perfil NO se tocan.
+    window.sendOwnerReset = async function() {
+      const raw = prompt('📧 Recuperar acceso de un dueño\n\nEscribe el correo con el que el dueño activó su medalla (pídeselo por WhatsApp):');
+      if (!raw) return;
+      const em = raw.trim();
+      if (!em || em.indexOf('@') < 1) return alert('Ese correo no parece válido. Revísalo e inténtalo de nuevo.');
+      if (!confirm('¿Enviar el correo de recuperación a ' + em + '?\n\nLa medalla y el perfil NO cambian: solo llega el enlace para crear una contraseña nueva.')) return;
+      try {
+        try { await auth.sendPasswordResetEmail(em, { url: location.origin + '/landing.html', handleCodeInApp: false }); }
+        catch (e1) { await auth.sendPasswordResetEmail(em); }
+        alert('✅ Correo enviado a ' + em + '.\n\nDile al dueño: bandeja de entrada (y spam) → enlace → crea contraseña nueva → vuelve a escanear el QR de su medalla e inicia sesión.\n\nSi le llega "correo no encontrado", el correo no coincide con el del primer registro.');
+      } catch(e) {
+        const code = (e && e.code) || '';
+        let msg = (e && e.message) || 'Error desconocido';
+        if (code === 'auth/invalid-email') msg = 'Ese correo no parece válido.';
+        else if (code === 'auth/user-not-found') msg = 'No hay cuenta con ese correo. Pídele al dueño el correo EXACTO con el que activó la medalla (el del primer registro).';
+        else if (code === 'auth/too-many-requests') msg = 'Demasiados envíos seguidos. Espera unos minutos.';
+        else if (code === 'auth/network-request-failed') msg = 'Problema de conexión. Revisa tu internet.';
+        alert('No se pudo enviar: ' + msg);
+      }
     }
 
     // changePlan eliminado (Ronda 13): el modo Premium/Básico lo define la suscripción del dueño.
