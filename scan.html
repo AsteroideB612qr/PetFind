@@ -160,9 +160,37 @@
         window.location.href = `dashboard.html?id=${tagId}`;
       } catch (error) { alert("Error: " + error.message); }
     }
-    function showOwnerLogin() { if(isDemo) { window.location.href = 'dashboard.html?demo=true'; return; } document.getElementById('content').innerHTML = `<div class="flex justify-center mb-6"><a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 cursor-pointer"></a></div><div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700"><h2 class="text-2xl font-bold text-white mb-4">Panel del Dueño</h2><div class="space-y-4"><input type="email" id="loginEmail" placeholder="Correo" class="w-full p-4 bg-slate-700 rounded-xl"><input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-4 bg-slate-700 rounded-xl"><button onclick="loginOwner()" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">Iniciar Sesión</button><button onclick="history.back()" class="w-full text-slate-500 text-sm">Volver</button></div></div>`; }
+    function showOwnerLogin() { if(isDemo) { window.location.href = 'dashboard.html?demo=true'; return; } document.getElementById('content').innerHTML = `<div class="flex justify-center mb-6"><a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 cursor-pointer"></a></div><div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700"><h2 class="text-2xl font-bold text-white mb-4">Panel del Dueño</h2><div class="space-y-4"><input type="email" id="loginEmail" placeholder="Correo" class="w-full p-4 bg-slate-700 rounded-xl"><input type="password" id="loginPass" placeholder="Contraseña" class="w-full p-4 bg-slate-700 rounded-xl"><button onclick="loginOwner()" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">Iniciar Sesión</button><button onclick="showResetPass()" class="w-full text-slate-400 text-sm underline">¿Olvidaste tu contraseña?</button><button onclick="history.back()" class="w-full text-slate-500 text-sm">Volver</button></div></div>`; }
     window.showOwnerLogin = showOwnerLogin;
     window.loginOwner = async function() { try { await auth.signInWithEmailAndPassword(document.getElementById('loginEmail').value, document.getElementById('loginPass').value); window.location.href = `dashboard.html?id=${tagId}`; } catch (e) { alert("Error: " + e.message); } }
+    // 🔄 RONDA 28: RECUPERACIÓN DE CONTRASEÑA (Firebase Auth nativo; NO usa Firestore).
+    // Se pide desde el login "Acceso Dueño": Firebase envía al correo del dueño el enlace
+    // oficial para crear una contraseña nueva. NO toca tags/pets → cero riesgo para las
+    // placas vendidas. Primero se intenta con retorno a landing (requiere el dominio en
+    // Authentication → Dominios autorizados); si Firebase lo rechaza, reenvía sin retorno.
+    function escHtml28(s) { return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+    function showResetPass() {
+      const prefill = escHtml28((document.getElementById('loginEmail') || {}).value || '');
+      document.getElementById('content').innerHTML = `<div class="flex justify-center mb-6"><a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 cursor-pointer"></a></div><div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700"><h2 class="text-2xl font-bold text-white mb-2">🔑 Recuperar Contraseña</h2><p class="text-slate-400 text-sm mb-6">Escribe el correo con el que activaste la medalla y te enviaremos un enlace para crear una contraseña nueva.</p><div class="space-y-4"><input type="email" id="resetEmail" placeholder="Tu correo" value="${prefill}" class="w-full p-4 bg-slate-700 rounded-xl"><button onclick="sendResetEmail()" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">📧 Enviar correo de recuperación</button><button onclick="showOwnerLogin()" class="w-full text-slate-500 text-sm">Volver al inicio de sesión</button></div></div>`;
+    }
+    window.showResetPass = showResetPass;
+    window.sendResetEmail = async function() {
+      const email = (document.getElementById('resetEmail').value || '').trim();
+      if (!email || email.indexOf('@') < 1) return alert("Escribe el correo con el que activaste la medalla.");
+      try {
+        try { await auth.sendPasswordResetEmail(email, { url: location.origin + '/landing.html', handleCodeInApp: false }); }
+        catch (e1) { await auth.sendPasswordResetEmail(email); }
+        document.getElementById('content').innerHTML = `<div class="flex justify-center mb-6"><a href="landing.html" target="_blank"><img src="logo.png" alt="ChochePet" class="h-20 cursor-pointer"></a></div><div class="bg-slate-800 p-8 rounded-3xl shadow-2xl border border-slate-700 text-center"><div class="text-5xl mb-4">📬</div><h2 class="text-2xl font-bold text-white mb-2">¡Correo enviado!</h2><p class="text-slate-400 text-sm mb-6">Si <b class="text-white">${escHtml28(email)}</b> tiene una cuenta ChochePet, ya le llegó un enlace para crear una contraseña nueva. Revisa también tu carpeta de spam.<br><br>Después de cambiarla, vuelve a escanear el QR de tu medalla e inicia sesión con la nueva contraseña.</p><button onclick="showOwnerLogin()" class="w-full bg-blue-600 px-6 py-4 rounded-xl font-bold">Volver al inicio de sesión</button></div>`;
+      } catch (e) {
+        const code = (e && e.code) || '';
+        let msg = (e && e.message) || 'Error desconocido';
+        if (code === 'auth/invalid-email') msg = 'Ese correo no parece válido. Revísalo e inténtalo de nuevo.';
+        else if (code === 'auth/user-not-found') msg = 'No encontramos una cuenta con ese correo. Usa el mismo correo con el que activaste la medalla (el del primer registro).';
+        else if (code === 'auth/too-many-requests') msg = 'Demasiados intentos seguidos. Espera unos minutos e inténtalo de nuevo.';
+        else if (code === 'auth/network-request-failed') msg = 'Problema de conexión. Revisa tu internet e inténtalo de nuevo.';
+        alert('No se pudo enviar el correo: ' + msg);
+      }
+    };
     window.sendLocation = function(phone, message) { if(isDemo) return alert("🧪 Demo: Se abriría WhatsApp con la ubicación."); if (!navigator.geolocation) return alert("Ubicación no soportada."); document.getElementById('content').innerHTML = "<p class='text-blue-400 animate-pulse text-center text-lg'>Obteniendo ubicación...</p>"; navigator.geolocation.getCurrentPosition((pos) => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message + " https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude)}`, () => window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`); }
     window.sendPlainMessage = function(phone, message) { if(isDemo) return alert("🧪 Demo: Se abriría WhatsApp."); window.location.href = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`; }
     init();
